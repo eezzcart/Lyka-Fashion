@@ -1,0 +1,4607 @@
+/*
+================================================================================
+LYKA FASHION - COMPLETE FRONTEND CODE
+================================================================================
+This is the complete frontend React code consolidated.
+Copy each section to its respective file as indicated.
+
+INSTALLATION INSTRUCTIONS:
+1. Create React app: npx create-react-app lyka-fashion-frontend
+2. cd lyka-fashion-frontend
+3. Install dependencies: npm install react-router-dom styled-components axios react-icons @stripe/stripe-js @stripe/react-stripe-js
+4. Replace/create files as shown below
+5. Run: npm start
+
+================================================================================
+*/
+
+// ============================================================================
+// FILE: package.json
+// ============================================================================
+{
+  "name": "lyka-fashion-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.11.0",
+    "styled-components": "^6.0.0",
+    "axios": "^1.4.0",
+    "react-icons": "^4.8.0",
+    "@stripe/stripe-js": "^1.52.0",
+    "@stripe/react-stripe-js": "^2.1.0",
+    "react-toastify": "^9.1.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": ["react-app"]
+  },
+  "browserslist": {
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+  }
+}
+
+// ============================================================================
+// FILE: public/index.html
+// ============================================================================
+/*
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2C2C2C" />
+    <meta name="description" content="Lyka Fashion - Luxury Fashion E-commerce" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Lyka Fashion - Luxury Fashion</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
+*/
+
+// ============================================================================
+// FILE: src/index.js
+// ============================================================================
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// ============================================================================
+// FILE: src/App.js
+// ============================================================================
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { GlobalStyles } from './styles/GlobalStyles';
+import { CartProvider } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Components
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import PrivateRoute from './components/PrivateRoute';
+
+// Pages
+import HomePage from './pages/HomePage';
+import ShopPage from './pages/ShopPage';
+import ProductPage from './pages/ProductPage';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminProducts from './pages/admin/AdminProducts';
+import AddProduct from './pages/admin/AddProduct';
+import AdminOrders from './pages/admin/AdminOrders';
+import Dashboard from './pages/admin/Dashboard';
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <CartProvider>
+          <GlobalStyles />
+          <ToastContainer position="top-right" autoClose={3000} />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/*" element={
+              <>
+                <Navbar />
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/shop" element={<ShopPage />} />
+                  <Route path="/shop/:category" element={<ShopPage />} />
+                  <Route path="/product/:slug" element={<ProductPage />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
+                </Routes>
+                <Footer />
+              </>
+            } />
+
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/*" element={
+              <PrivateRoute>
+                <AdminDashboard>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/products" element={<AdminProducts />} />
+                    <Route path="/add-product" element={<AddProduct />} />
+                    <Route path="/edit-product/:id" element={<AddProduct />} />
+                    <Route path="/orders" element={<AdminOrders />} />
+                  </Routes>
+                </AdminDashboard>
+              </PrivateRoute>
+            } />
+          </Routes>
+        </CartProvider>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;
+
+// ============================================================================
+// FILE: src/styles/GlobalStyles.js
+// ============================================================================
+import { createGlobalStyle } from 'styled-components';
+
+export const GlobalStyles = createGlobalStyle`
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --cream: #F5F5F0;
+    --charcoal: #2C2C2C;
+    --gold: #D4AF37;
+    --white: #FFFFFF;
+    --light-gray: #E8E8E8;
+    --dark-gray: #666;
+    --serif: 'Cormorant Garamond', serif;
+    --sans: 'Montserrat', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--cream);
+    color: var(--charcoal);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--serif);
+    font-weight: 400;
+    letter-spacing: 1px;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+  }
+
+  button {
+    font-family: var(--sans);
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+  }
+
+  img {
+    max-width: 100%;
+    display: block;
+  }
+
+  input, textarea, select {
+    font-family: var(--sans);
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--cream);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--charcoal);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
+  }
+`;
+
+// ============================================================================
+// FILE: src/utils/api.js
+// ============================================================================
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add token to requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle responses
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+// ============================================================================
+// FILE: src/context/CartContext.js
+// ============================================================================
+import React, { createContext, useState, useContext, useEffect } from 'react';
+
+const CartContext = createContext();
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within CartProvider');
+  }
+  return context;
+};
+
+export const CartProvider = ({ children }) => {
+  const [cart, setCart] = useState(() => {
+    const savedCart = localStorage.getItem('cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
+
+  const addToCart = (product, quantity = 1, size = '', color = '') => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(
+        item => item._id === product._id && item.size === size && item.color === color
+      );
+
+      if (existingItem) {
+        return prevCart.map(item =>
+          item._id === product._id && item.size === size && item.color === color
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
+      }
+
+      return [...prevCart, { ...product, quantity, size, color }];
+    });
+  };
+
+  const removeFromCart = (productId, size = '', color = '') => {
+    setCart(prevCart =>
+      prevCart.filter(
+        item => !(item._id === productId && item.size === size && item.color === color)
+      )
+    );
+  };
+
+  const updateQuantity = (productId, quantity, size = '', color = '') => {
+    if (quantity <= 0) {
+      removeFromCart(productId, size, color);
+      return;
+    }
+
+    setCart(prevCart =>
+      prevCart.map(item =>
+        item._id === productId && item.size === size && item.color === color
+          ? { ...item, quantity }
+          : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+
+  const getCartCount = () => {
+    return cart.reduce((count, item) => count + item.quantity, 0);
+  };
+
+  const value = {
+    cart,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getCartTotal,
+    getCartCount
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+};
+
+// ============================================================================
+// FILE: src/context/AuthContext.js
+// ============================================================================
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import api from '../utils/api';
+
+const AuthContext = createContext();
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [admin, setAdmin] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await api.get('/auth/me');
+        setAdmin(response.data.data);
+      } catch (error) {
+        localStorage.removeItem('token');
+      }
+    }
+    setLoading(false);
+  };
+
+  const login = async (email, password) => {
+    const response = await api.post('/auth/login', { email, password });
+    localStorage.setItem('token', response.data.token);
+    setAdmin(response.data.admin);
+    return response.data;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setAdmin(null);
+  };
+
+  const value = {
+    admin,
+    loading,
+    login,
+    logout,
+    isAuthenticated: !!admin
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// ============================================================================
+// FILE: src/components/PrivateRoute.jsx
+// ============================================================================
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import styled from 'styled-components';
+
+const PrivateRoute = ({ children }) => {
+  const { admin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <LoadingContainer>
+        <Spinner />
+        <p>Loading...</p>
+      </LoadingContainer>
+    );
+  }
+
+  return admin ? children : <Navigate to="/admin/login" />;
+};
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--cream);
+`;
+
+const Spinner = styled.div`
+  border: 4px solid var(--light-gray);
+  border-top: 4px solid var(--gold);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+export default PrivateRoute;
+
+// ============================================================================
+// FILE: src/components/Navbar.jsx
+// ============================================================================
+import React, { useState } from 'react';
+import styled from 'styled-components';
+import { Link } from 'react-router-dom';
+import { FiShoppingBag, FiMenu, FiX, FiSearch } from 'react-icons/fi';
+import { useCart } from '../context/CartContext';
+
+const Navbar = () => {
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { getCartCount } = useCart();
+
+  return (
+    <Nav>
+      <TopBar>
+        <p>Free Shipping on Orders Over $500 | Worldwide Delivery</p>
+      </TopBar>
+
+      <MainNav>
+        <Container>
+          <Logo>
+            <Link to="/">LYKA FASHION</Link>
+          </Logo>
+
+          <NavLinks className={mobileMenu ? 'active' : ''}>
+            <NavLink to="/shop/Luxury Bridals" onClick={() => setMobileMenu(false)}>
+              Luxury Bridals
+            </NavLink>
+            <NavLink to="/shop/Elegant Abayas" onClick={() => setMobileMenu(false)}>
+              Elegant Abayas
+            </NavLink>
+            <NavLink to="/shop/Designer Suits" onClick={() => setMobileMenu(false)}>
+              Designer Suits
+            </NavLink>
+            <NavLink to="/shop/Couture Cosmetics" onClick={() => setMobileMenu(false)}>
+              Couture Cosmetics
+            </NavLink>
+          </NavLinks>
+
+          <NavIcons>
+            <Icon onClick={() => setSearchOpen(!searchOpen)}>
+              <FiSearch />
+            </Icon>
+            <Icon>
+              <Link to="/cart">
+                <FiShoppingBag />
+                {getCartCount() > 0 && <CartBadge>{getCartCount()}</CartBadge>}
+              </Link>
+            </Icon>
+            <MobileMenuIcon onClick={() => setMobileMenu(!mobileMenu)}>
+              {mobileMenu ? <FiX /> : <FiMenu />}
+            </MobileMenuIcon>
+          </NavIcons>
+        </Container>
+
+        {searchOpen && (
+          <SearchBar>
+            <SearchInput type="text" placeholder="Search for products..." />
+          </SearchBar>
+        )}
+      </MainNav>
+    </Nav>
+  );
+};
+
+const Nav = styled.nav`
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--white);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+`;
+
+const TopBar = styled.div`
+  background: var(--charcoal);
+  color: var(--white);
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+`;
+
+const MainNav = styled.div`
+  padding: 1.5rem 0;
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Logo = styled.h1`
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: 3px;
+
+  a {
+    color: var(--charcoal);
+  }
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+const NavLinks = styled.div`
+  display: flex;
+  gap: 3rem;
+
+  @media (max-width: 968px) {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100vh;
+    width: 70%;
+    background: var(--white);
+    flex-direction: column;
+    padding: 5rem 2rem;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+
+    &.active {
+      left: 0;
+    }
+  }
+`;
+
+const NavLink = styled(Link)`
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 400;
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+const NavIcons = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+`;
+
+const Icon = styled.div`
+  font-size: 1.3rem;
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+const CartBadge = styled.span`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--gold);
+  color: var(--white);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+`;
+
+const MobileMenuIcon = styled.div`
+  display: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+
+  @media (max-width: 968px) {
+    display: block;
+  }
+`;
+
+const SearchBar = styled.div`
+  max-width: 1400px;
+  margin: 1rem auto 0;
+  padding: 0 2rem;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+export default Navbar;
+
+// ============================================================================
+// FILE: src/components/Footer.jsx
+// ============================================================================
+import React from 'react';
+import styled from 'styled-components';
+import { Link } from 'react-router-dom';
+import { FiInstagram, FiFacebook, FiTwitter, FiMail } from 'react-icons/fi';
+
+const Footer = () => {
+  return (
+    <FooterContainer>
+      <Container>
+        <FooterGrid>
+          <FooterColumn>
+            <FooterLogo>LYKA FASHION</FooterLogo>
+            <FooterText>
+              Timeless elegance meets contemporary design. Discover luxury fashion that defines your style.
+            </FooterText>
+            <SocialIcons>
+              <SocialIcon href="https://instagram.com" target="_blank"><FiInstagram /></SocialIcon>
+              <SocialIcon href="https://facebook.com" target="_blank"><FiFacebook /></SocialIcon>
+              <SocialIcon href="https://twitter.com" target="_blank"><FiTwitter /></SocialIcon>
+              <SocialIcon href="mailto:info@lykafashion.com"><FiMail /></SocialIcon>
+            </SocialIcons>
+          </FooterColumn>
+
+          <FooterColumn>
+            <FooterTitle>Shop</FooterTitle>
+            <FooterLink to="/shop/Luxury Bridals">Luxury Bridals</FooterLink>
+            <FooterLink to="/shop/Elegant Abayas">Elegant Abayas</FooterLink>
+            <FooterLink to="/shop/Designer Suits">Designer Suits</FooterLink>
+            <FooterLink to="/shop/Couture Cosmetics">Couture Cosmetics</FooterLink>
+          </FooterColumn>
+
+          <FooterColumn>
+            <FooterTitle>Customer Service</FooterTitle>
+            <FooterLink to="/contact">Contact Us</FooterLink>
+            <FooterLink to="/shipping">Shipping Information</FooterLink>
+            <FooterLink to="/returns">Returns & Exchanges</FooterLink>
+            <FooterLink to="/faq">FAQ</FooterLink>
+          </FooterColumn>
+
+          <FooterColumn>
+            <FooterTitle>Newsletter</FooterTitle>
+            <FooterText>Subscribe to receive updates, access to exclusive deals, and more.</FooterText>
+            <Newsletter>
+              <NewsletterInput type="email" placeholder="Your email" />
+              <NewsletterButton>Subscribe</NewsletterButton>
+            </Newsletter>
+          </FooterColumn>
+        </FooterGrid>
+
+        <FooterBottom>
+          <Copyright>© 2024 Lyka Fashion. All rights reserved.</Copyright>
+          <FooterLinks>
+            <FooterLink to="/privacy">Privacy Policy</FooterLink>
+            <FooterLink to="/terms">Terms of Service</FooterLink>
+          </FooterLinks>
+        </FooterBottom>
+      </Container>
+    </FooterContainer>
+  );
+};
+
+const FooterContainer = styled.footer`
+  background: var(--charcoal);
+  color: var(--white);
+  padding: 4rem 0 2rem;
+  margin-top: 5rem;
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+`;
+
+const FooterGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 3rem;
+  margin-bottom: 3rem;
+`;
+
+const FooterColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const FooterLogo = styled.h3`
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+`;
+
+const FooterTitle = styled.h4`
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+`;
+
+const FooterText = styled.p`
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+const FooterLink = styled(Link)`
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  transition: color 0.3s;
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+const SocialIcons = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const SocialIcon = styled.a`
+  font-size: 1.3rem;
+  color: var(--white);
+  transition: color 0.3s;
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+const Newsletter = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const NewsletterInput = styled.input`
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.9rem;
+`;
+
+const NewsletterButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: var(--gold);
+  color: var(--white);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover {
+    background: #c49b2e;
+  }
+`;
+
+const FooterBottom = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+`;
+
+const Copyright = styled.p`
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const FooterLinks = styled.div`
+  display: flex;
+  gap: 2rem;
+`;
+
+export default Footer;
+
+// ============================================================================
+// FILE: src/components/ProductCard.jsx
+// ============================================================================
+import React from 'react';
+import styled from 'styled-components';
+import { Link } from 'react-router-dom';
+
+const ProductCard = ({ product }) => {
+  return (
+    <Card to={`/product/${product.slug}`}>
+      <ImageContainer>
+        <ProductImage src={product.images[0]?.url || '/placeholder.jpg'} alt={product.name} />
+        {product.discountPercentage > 0 && (
+          <DiscountBadge>{product.discountPercentage}% OFF</DiscountBadge>
+        )}
+        {product.newArrival && <NewBadge>New</NewBadge>}
+      </ImageContainer>
+      <ProductInfo>
+        <ProductName>{product.name}</ProductName>
+        <ProductCategory>{product.category}</ProductCategory>
+        <PriceContainer>
+          <ProductPrice>${product.price.toFixed(2)}</ProductPrice>
+          {product.compareAtPrice && product.compareAtPrice > product.price && (
+            <ComparePrice>${product.compareAtPrice.toFixed(2)}</ComparePrice>
+          )}
+        </PriceContainer>
+      </ProductInfo>
+    </Card>
+  );
+};
+
+const Card = styled(Link)`
+  display: block;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+`;
+
+const ImageContainer = styled.div`
+  position: relative;
+  overflow: hidden;
+  background: var(--light-gray);
+  aspect-ratio: 3/4;
+`;
+
+const ProductImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+
+  ${Card}:hover & {
+    transform: scale(1.05);
+  }
+`;
+
+const DiscountBadge = styled.span`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--gold);
+  color: var(--white);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 3px;
+`;
+
+const NewBadge = styled.span`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--charcoal);
+  color: var(--white);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 3px;
+`;
+
+const ProductInfo = styled.div`
+  padding: 1.5rem 0;
+`;
+
+const ProductName = styled.h3`
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+  font-weight: 400;
+`;
+
+const ProductCategory = styled.p`
+  font-size: 0.85rem;
+  color: var(--dark-gray);
+  margin-bottom: 0.5rem;
+`;
+
+const PriceContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const ProductPrice = styled.span`
+  font-size: 1.2rem;
+  color: var(--charcoal);
+  font-weight: 600;
+`;
+
+const ComparePrice = styled.span`
+  font-size: 1rem;
+  color: var(--dark-gray);
+  text-decoration: line-through;
+`;
+
+export default ProductCard;
+
+// ============================================================================
+// FILE: src/pages/HomePage.jsx
+// ============================================================================
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { Link } from 'react-router-dom';
+import api from '../utils/api';
+import ProductCard from '../components/ProductCard';
+
+const HomePage = () => {
+  const [newArrivals, setNewArrivals] = useState([]);
+  const [featured, setFeatured] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const [newRes, featuredRes] = await Promise.all([
+        api.get('/products?newArrival=true&limit=4'),
+        api.get('/products?featured=true&limit=4')
+      ]);
+      setNewArrivals(newRes.data.data);
+      setFeatured(featuredRes.data.data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <HomeContainer>
+      {/* Hero Section */}
+      <Hero>
+        <HeroOverlay />
+        <HeroContent>
+          <HeroTitle>Timeless Elegance</HeroTitle>
+          <HeroSubtitle>Spring/Summer 2024 Collection</HeroSubtitle>
+          <HeroButton to="/shop">Explore Collection</HeroButton>
+        </HeroContent>
+      </Hero>
+
+      {/* Categories */}
+      <Section>
+        <Container>
+          <CategoryGrid>
+            <CategoryCard to="/shop/Luxury Bridals">
+              <CategoryOverlay>
+                <CategoryTitle>Luxury Bridals</CategoryTitle>
+              </CategoryOverlay>
+            </CategoryCard>
+
+            <CategoryCard to="/shop/Elegant Abayas">
+              <CategoryOverlay>
+                <CategoryTitle>Elegant Abayas</CategoryTitle>
+              </CategoryOverlay>
+            </CategoryCard>
+
+            <CategoryCard to="/shop/Designer Suits">
+              <CategoryOverlay>
+                <CategoryTitle>Designer Suits</CategoryTitle>
+              </CategoryOverlay>
+            </CategoryCard>
+
+            <CategoryCard to="/shop/Couture Cosmetics">
+              <CategoryOverlay>
+                <CategoryTitle>Couture Cosmetics</CategoryTitle>
+              </CategoryOverlay>
+            </CategoryCard>
+          </CategoryGrid>
+        </Container>
+      </Section>
+
+      {/* New Arrivals */}
+      <Section>
+        <Container>
+          <SectionTitle>New Arrivals</SectionTitle>
+          {loading ? (
+            <LoadingText>Loading products...</LoadingText>
+          ) : (
+            <ProductGrid>
+              {newArrivals.map(product => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </ProductGrid>
+          )}
+          <ViewAllButton to="/shop?newArrival=true">View All New Arrivals</ViewAllButton>
+        </Container>
+      </Section>
+
+      {/* Featured Products */}
+      <Section background="white">
+        <Container>
+          <SectionTitle>Featured Products</SectionTitle>
+          {loading ? (
+            <LoadingText>Loading products...</LoadingText>
+          ) : (
+            <ProductGrid>
+              {featured.map(product => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </ProductGrid>
+          )}
+        </Container>
+      </Section>
+
+      {/* Shop the Look */}
+      <ShopLook>
+        <LookContent>
+          <LookTitle>Shop the Look</LookTitle>
+          <LookDescription>
+            Discover our curated collection of statement pieces designed to make you feel extraordinary.
+          </LookDescription>
+          <LookButton to="/shop">View Collection</LookButton>
+        </LookContent>
+      </ShopLook>
+
+      {/* Instagram Feed */}
+      <Section>
+        <Container>
+          <SectionTitle>Follow Us @LykaFashion</SectionTitle>
+          <InstagramGrid>
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <InstagramCard key={i}>
+                <InstagramPlaceholder>Instagram Post {i}</InstagramPlaceholder>
+              </InstagramCard>
+            ))}
+          </InstagramGrid>
+        </Container>
+      </Section>
+    </HomeContainer>
+  );
+};
+
+const HomeContainer = styled.div``;
+
+const Hero = styled.section`
+  position: relative;
+  height: 100vh;
+  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
+    url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920') center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const HeroOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+`;
+
+const HeroContent = styled.div`
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  color: var(--white);
+`;
+
+const HeroTitle = styled.h1`
+  font-size: 5rem;
+  margin-bottom: 1rem;
+  animation: fadeInUp 1s ease;
+
+  @media (max-width: 768px) {
+    font-size: 3rem;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const HeroSubtitle = styled.p`
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  margin-bottom: 2rem;
+  animation: fadeInUp 1s ease 0.2s both;
+`;
+
+const HeroButton = styled(Link)`
+  display: inline-block;
+  padding: 1rem 3rem;
+  background: var(--white);
+  color: var(--charcoal);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.9rem;
+  animation: fadeInUp 1s ease 0.4s both;
+
+  &:hover {
+    background: var(--gold);
+    color: var(--white);
+  }
+`;
+
+const Section = styled.section`
+  padding: 5rem 0;
+  background: ${props => props.background || 'var(--cream)'};
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+`;
+
+const SectionTitle = styled.h2`
+  text-align: center;
+  font-size: 3rem;
+  margin-bottom: 3rem;
+  letter-spacing: 2px;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const CategoryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+`;
+
+const CategoryCard = styled(Link)`
+  position: relative;
+  height: 400px;
+  background: var(--light-gray);
+  overflow: hidden;
+
+  &:hover div {
+    background: rgba(0, 0, 0, 0.6);
+  }
+`;
+
+const CategoryOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+`;
+
+const CategoryTitle = styled.h3`
+  color: var(--white);
+  font-size: 2rem;
+  letter-spacing: 2px;
+`;
+
+const ProductGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+`;
+
+const LoadingText = styled.p`
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+  padding: 3rem 0;
+`;
+
+const ViewAllButton = styled(Link)`
+  display: block;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 1rem 2.5rem;
+  background: var(--charcoal);
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+
+  &:hover {
+    background: var(--gold);
+  }
+`;
+
+const ShopLook = styled.section`
+  min-height: 600px;
+  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
+    url('https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1920') center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+`;
+
+const LookContent = styled.div`
+  text-align: center;
+  color: var(--white);
+  max-width: 600px;
+`;
+
+const LookTitle = styled.h2`
+  font-size: 3.5rem;
+  margin-bottom: 2rem;
+`;
+
+const LookDescription = styled.p`
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 2rem;
+`;
+
+const LookButton = styled(Link)`
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  background: var(--white);
+  color: var(--charcoal);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+
+  &:hover {
+    background: var(--gold);
+    color: var(--white);
+  }
+`;
+
+const InstagramGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+`;
+
+const InstagramCard = styled.div`
+  aspect-ratio: 1;
+  background: var(--light-gray);
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+const InstagramPlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--dark-gray);
+`;
+
+export default HomePage;
+
+// ============================================================================
+// FILE: src/pages/ShopPage.jsx  (CONTINUED IN NEXT COMMENT DUE TO LENGTH)
+// ============================================================================
+
+// ============================================================================
+// FILE: src/pages/ShopPage.jsx
+// ============================================================================
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { useParams, useSearchParams } from 'react-router-dom';
+import api from '../utils/api';
+import ProductCard from '../components/ProductCard';
+
+const ShopPage = () => {
+  const { category } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    sort: searchParams.get('sort') || 'newest',
+    minPrice: searchParams.get('minPrice') || '',
+    maxPrice: searchParams.get('maxPrice') || '',
+    search: searchParams.get('search') || ''
+  });
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [category, filters, currentPage]);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: currentPage,
+        limit: 12,
+        sort: filters.sort,
+        ...(category && { category }),
+        ...(filters.minPrice && { minPrice: filters.minPrice }),
+        ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
+        ...(filters.search && { search: filters.search })
+      };
+
+      const response = await api.get('/products', { params });
+      setProducts(response.data.data);
+      setTotalPages(response.data.totalPages);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({ ...prev, [name]: value }));
+    setCurrentPage(1);
+    
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(name, value);
+    } else {
+      newParams.delete(name);
+    }
+    setSearchParams(newParams);
+  };
+
+  return (
+    <ShopContainer>
+      <Container>
+        <ShopHeader>
+          <ShopTitle>{category || 'All Products'}</ShopTitle>
+          <ResultsCount>
+            {loading ? 'Loading...' : `${products.length} products`}
+          </ResultsCount>
+        </ShopHeader>
+
+        <ShopContent>
+          {/* Filters Sidebar */}
+          <Sidebar>
+            <FilterSection>
+              <FilterTitle>Categories</FilterTitle>
+              <FilterOption to="/shop">All Products</FilterOption>
+              <FilterOption to="/shop/Luxury Bridals">Luxury Bridals</FilterOption>
+              <FilterOption to="/shop/Elegant Abayas">Elegant Abayas</FilterOption>
+              <FilterOption to="/shop/Designer Suits">Designer Suits</FilterOption>
+              <FilterOption to="/shop/Couture Cosmetics">Couture Cosmetics</FilterOption>
+            </FilterSection>
+
+            <FilterSection>
+              <FilterTitle>Price Range</FilterTitle>
+              <PriceInputs>
+                <PriceInput
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minPrice}
+                  onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                />
+                <span>-</span>
+                <PriceInput
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxPrice}
+                  onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                />
+              </PriceInputs>
+            </FilterSection>
+
+            <FilterSection>
+              <FilterTitle>Sort By</FilterTitle>
+              <Select
+                value={filters.sort}
+                onChange={(e) => handleFilterChange('sort', e.target.value)}
+              >
+                <option value="newest">Newest First</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="popular">Most Popular</option>
+              </Select>
+            </FilterSection>
+          </Sidebar>
+
+          {/* Products Grid */}
+          <ProductsSection>
+            {loading ? (
+              <LoadingText>Loading products...</LoadingText>
+            ) : products.length > 0 ? (
+              <>
+                <ProductGrid>
+                  {products.map(product => (
+                    <ProductCard key={product._id} product={product} />
+                  ))}
+                </ProductGrid>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <Pagination>
+                    <PaginationButton
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => prev - 1)}
+                    >
+                      Previous
+                    </PaginationButton>
+                    
+                    <PaginationInfo>
+                      Page {currentPage} of {totalPages}
+                    </PaginationInfo>
+
+                    <PaginationButton
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                    >
+                      Next
+                    </PaginationButton>
+                  </Pagination>
+                )}
+              </>
+            ) : (
+              <NoProducts>
+                <p>No products found matching your criteria.</p>
+              </NoProducts>
+            )}
+          </ProductsSection>
+        </ShopContent>
+      </Container>
+    </ShopContainer>
+  );
+};
+
+const ShopContainer = styled.div`
+  min-height: 80vh;
+  padding: 3rem 0;
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+`;
+
+const ShopHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+`;
+
+const ShopTitle = styled.h1`
+  font-size: 3rem;
+  letter-spacing: 2px;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const ResultsCount = styled.p`
+  font-size: 1rem;
+  color: var(--dark-gray);
+`;
+
+const ShopContent = styled.div`
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 3rem;
+
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Sidebar = styled.aside`
+  @media (max-width: 968px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+  }
+`;
+
+const FilterSection = styled.div`
+  margin-bottom: 2.5rem;
+`;
+
+const FilterTitle = styled.h3`
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+`;
+
+const FilterOption = styled.a`
+  display: block;
+  padding: 0.5rem 0;
+  color: var(--charcoal);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+const PriceInputs = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const PriceInput = styled.input`
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 3px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 3px;
+  background: var(--white);
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const ProductsSection = styled.div``;
+
+const ProductGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+`;
+
+const LoadingText = styled.p`
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+  padding: 3rem 0;
+`;
+
+const NoProducts = styled.div`
+  text-align: center;
+  padding: 5rem 2rem;
+  
+  p {
+    font-size: 1.2rem;
+    color: var(--dark-gray);
+  }
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 3rem;
+`;
+
+const PaginationButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: var(--charcoal);
+  color: var(--white);
+  border: none;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--gold);
+  }
+
+  &:disabled {
+    background: var(--light-gray);
+    cursor: not-allowed;
+  }
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 1rem;
+  color: var(--dark-gray);
+`;
+
+export default ShopPage;
+
+// ============================================================================
+// FILE: src/pages/ProductPage.jsx
+// ============================================================================
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import api from '../utils/api';
+import { useCart } from '../context/CartContext';
+
+const ProductPage = () => {
+  const { slug } = useParams();
+  const { addToCart } = useCart();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
+
+  useEffect(() => {
+    fetchProduct();
+  }, [slug]);
+
+  const fetchProduct = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get(`/products/${slug}`);
+      setProduct(response.data.data);
+      if (response.data.data.sizes?.length > 0) {
+        setSelectedSize(response.data.data.sizes[0].size);
+      }
+      if (response.data.data.colors?.length > 0) {
+        setSelectedColor(response.data.data.colors[0].name);
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      toast.error('Product not found');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    if (product.sizes?.length > 0 && !selectedSize) {
+      toast.error('Please select a size');
+      return;
+    }
+
+    if (product.colors?.length > 0 && !selectedColor) {
+      toast.error('Please select a color');
+      return;
+    }
+
+    addToCart(product, quantity, selectedSize, selectedColor);
+    toast.success('Added to cart!');
+  };
+
+  if (loading) {
+    return (
+      <LoadingContainer>
+        <LoadingText>Loading product...</LoadingText>
+      </LoadingContainer>
+    );
+  }
+
+  if (!product) {
+    return (
+      <LoadingContainer>
+        <LoadingText>Product not found</LoadingText>
+      </LoadingContainer>
+    );
+  }
+
+  return (
+    <ProductContainer>
+      <Container>
+        <ProductLayout>
+          {/* Product Images */}
+          <ImageSection>
+            <MainImage>
+              <img
+                src={product.images[selectedImage]?.url || '/placeholder.jpg'}
+                alt={product.name}
+              />
+            </MainImage>
+            {product.images.length > 1 && (
+              <ThumbnailGrid>
+                {product.images.map((image, index) => (
+                  <Thumbnail
+                    key={index}
+                    active={selectedImage === index}
+                    onClick={() => setSelectedImage(index)}
+                  >
+                    <img src={image.url} alt={`${product.name} ${index + 1}`} />
+                  </Thumbnail>
+                ))}
+              </ThumbnailGrid>
+            )}
+          </ImageSection>
+
+          {/* Product Details */}
+          <DetailsSection>
+            <ProductCategory>{product.category}</ProductCategory>
+            <ProductTitle>{product.name}</ProductTitle>
+
+            <PriceSection>
+              <ProductPrice>${product.price.toFixed(2)}</ProductPrice>
+              {product.compareAtPrice && product.compareAtPrice > product.price && (
+                <>
+                  <ComparePrice>${product.compareAtPrice.toFixed(2)}</ComparePrice>
+                  <DiscountBadge>Save {product.discountPercentage}%</DiscountBadge>
+                </>
+              )}
+            </PriceSection>
+
+            <ProductDescription>{product.description}</ProductDescription>
+
+            {/* Size Selection */}
+            {product.sizes && product.sizes.length > 0 && (
+              <OptionSection>
+                <OptionLabel>Size:</OptionLabel>
+                <SizeOptions>
+                  {product.sizes.map((sizeOption) => (
+                    <SizeButton
+                      key={sizeOption.size}
+                      active={selectedSize === sizeOption.size}
+                      onClick={() => setSelectedSize(sizeOption.size)}
+                      disabled={sizeOption.stock === 0}
+                    >
+                      {sizeOption.size}
+                    </SizeButton>
+                  ))}
+                </SizeOptions>
+              </OptionSection>
+            )}
+
+            {/* Color Selection */}
+            {product.colors && product.colors.length > 0 && (
+              <OptionSection>
+                <OptionLabel>Color:</OptionLabel>
+                <ColorOptions>
+                  {product.colors.map((colorOption) => (
+                    <ColorButton
+                      key={colorOption.name}
+                      active={selectedColor === colorOption.name}
+                      onClick={() => setSelectedColor(colorOption.name)}
+                      disabled={colorOption.stock === 0}
+                    >
+                      {colorOption.name}
+                    </ColorButton>
+                  ))}
+                </ColorOptions>
+              </OptionSection>
+            )}
+
+            {/* Quantity */}
+            <OptionSection>
+              <OptionLabel>Quantity:</OptionLabel>
+              <QuantitySelector>
+                <QuantityButton onClick={() => setQuantity(Math.max(1, quantity - 1))}>
+                  -
+                </QuantityButton>
+                <QuantityDisplay>{quantity}</QuantityDisplay>
+                <QuantityButton
+                  onClick={() => setQuantity(Math.min(product.inventory.available, quantity + 1))}
+                >
+                  +
+                </QuantityButton>
+              </QuantitySelector>
+              <StockInfo>
+                {product.inventory.available > 0
+                  ? `${product.inventory.available} in stock`
+                  : 'Out of stock'}
+              </StockInfo>
+            </OptionSection>
+
+            {/* Add to Cart Button */}
+            <AddToCartButton
+              onClick={handleAddToCart}
+              disabled={product.inventory.available === 0}
+            >
+              {product.inventory.available > 0 ? 'Add to Cart' : 'Out of Stock'}
+            </AddToCartButton>
+
+            {/* Product Info */}
+            <ProductInfo>
+              <InfoItem>
+                <strong>SKU:</strong> {product._id.slice(-8).toUpperCase()}
+              </InfoItem>
+              <InfoItem>
+                <strong>Category:</strong> {product.category}
+              </InfoItem>
+              {product.seo?.keywords && product.seo.keywords.length > 0 && (
+                <InfoItem>
+                  <strong>Tags:</strong> {product.seo.keywords.join(', ')}
+                </InfoItem>
+              )}
+            </ProductInfo>
+          </DetailsSection>
+        </ProductLayout>
+      </Container>
+    </ProductContainer>
+  );
+};
+
+const ProductContainer = styled.div`
+  padding: 3rem 0;
+  min-height: 80vh;
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+`;
+
+const LoadingContainer = styled.div`
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const LoadingText = styled.p`
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+`;
+
+const ProductLayout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+`;
+
+const ImageSection = styled.div``;
+
+const MainImage = styled.div`
+  background: var(--light-gray);
+  margin-bottom: 1rem;
+  aspect-ratio: 3/4;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const ThumbnailGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+`;
+
+const Thumbnail = styled.div`
+  aspect-ratio: 1;
+  background: var(--light-gray);
+  cursor: pointer;
+  border: 2px solid ${props => props.active ? 'var(--gold)' : 'transparent'};
+  transition: border 0.3s;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &:hover {
+    border-color: var(--gold);
+  }
+`;
+
+const DetailsSection = styled.div``;
+
+const ProductCategory = styled.p`
+  font-size: 0.9rem;
+  color: var(--dark-gray);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+`;
+
+const ProductTitle = styled.h1`
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const PriceSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+`;
+
+const ProductPrice = styled.span`
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--charcoal);
+`;
+
+const ComparePrice = styled.span`
+  font-size: 1.5rem;
+  color: var(--dark-gray);
+  text-decoration: line-through;
+`;
+
+const DiscountBadge = styled.span`
+  background: var(--gold);
+  color: var(--white);
+  padding: 0.3rem 0.7rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  font-weight: 600;
+`;
+
+const ProductDescription = styled.p`
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--dark-gray);
+  margin-bottom: 2rem;
+`;
+
+const OptionSection = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const OptionLabel = styled.label`
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+`;
+
+const SizeOptions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const SizeButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  border: 2px solid ${props => props.active ? 'var(--gold)' : 'var(--light-gray)'};
+  background: ${props => props.active ? 'var(--gold)' : 'var(--white)'};
+  color: ${props => props.active ? 'var(--white)' : 'var(--charcoal)'};
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    border-color: var(--gold);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const ColorOptions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const ColorButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  border: 2px solid ${props => props.active ? 'var(--gold)' : 'var(--light-gray)'};
+  background: ${props => props.active ? 'var(--gold)' : 'var(--white)'};
+  color: ${props => props.active ? 'var(--white)' : 'var(--charcoal)'};
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    border-color: var(--gold);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const QuantitySelector = styled.div`
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--light-gray);
+  margin-right: 1rem;
+`;
+
+const QuantityButton = styled.button`
+  padding: 0.75rem 1.25rem;
+  background: var(--white);
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+
+  &:hover {
+    background: var(--cream);
+  }
+`;
+
+const QuantityDisplay = styled.span`
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+`;
+
+const StockInfo = styled.span`
+  color: var(--dark-gray);
+  font-size: 0.9rem;
+`;
+
+const AddToCartButton = styled.button`
+  width: 100%;
+  padding: 1.25rem;
+  background: var(--charcoal);
+  color: var(--white);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 2rem;
+
+  &:hover:not(:disabled) {
+    background: var(--gold);
+  }
+
+  &:disabled {
+    background: var(--light-gray);
+    cursor: not-allowed;
+  }
+`;
+
+const ProductInfo = styled.div`
+  border-top: 1px solid var(--light-gray);
+  padding-top: 2rem;
+`;
+
+const InfoItem = styled.p`
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--dark-gray);
+
+  strong {
+    color: var(--charcoal);
+    margin-right: 0.5rem;
+  }
+`;
+
+export default ProductPage;
+
+// ============================================================================
+// FILE: src/pages/CartPage.jsx
+// ============================================================================
+import React from 'react';
+import styled from 'styled-components';
+import { Link, useNavigate } from 'react-router-dom';
+import { FiTrash2, FiShoppingBag } from 'react-icons/fi';
+import { useCart } from '../context/CartContext';
+
+const CartPage = () => {
+  const navigate = useNavigate();
+  const { cart, removeFromCart, updateQuantity, getCartTotal } = useCart();
+
+  const subtotal = getCartTotal();
+  const shipping = subtotal >= 500 ? 0 : 50;
+  const tax = subtotal * 0.1;
+  const total = subtotal + shipping + tax;
+
+  if (cart.length === 0) {
+    return (
+      <EmptyCart>
+        <FiShoppingBag size={80} />
+        <h2>Your Cart is Empty</h2>
+        <p>Add some items to get started!</p>
+        <ShopButton to="/shop">Continue Shopping</ShopButton>
+      </EmptyCart>
+    );
+  }
+
+  return (
+    <CartContainer>
+      <Container>
+        <PageTitle>Shopping Cart</PageTitle>
+
+        <CartLayout>
+          {/* Cart Items */}
+          <CartItems>
+            {cart.map((item) => (
+              <CartItem key={`${item._id}-${item.size}-${item.color}`}>
+                <ItemImage to={`/product/${item.slug}`}>
+                  <img src={item.images[0]?.url || '/placeholder.jpg'} alt={item.name} />
+                </ItemImage>
+
+                <ItemDetails>
+                  <ItemName to={`/product/${item.slug}`}>{item.name}</ItemName>
+                  <ItemOptions>
+                    {item.size && <span>Size: {item.size}</span>}
+                    {item.color && <span>Color: {item.color}</span>}
+                  </ItemOptions>
+                  <ItemPrice>${item.price.toFixed(2)}</ItemPrice>
+                </ItemDetails>
+
+                <ItemQuantity>
+                  <QuantityButton
+                    onClick={() => updateQuantity(item._id, item.quantity - 1, item.size, item.color)}
+                  >
+                    -
+                  </QuantityButton>
+                  <QuantityDisplay>{item.quantity}</QuantityDisplay>
+                  <QuantityButton
+                    onClick={() => updateQuantity(item._id, item.quantity + 1, item.size, item.color)}
+                  >
+                    +
+                  </QuantityButton>
+                </ItemQuantity>
+
+                <ItemTotal>${(item.price * item.quantity).toFixed(2)}</ItemTotal>
+
+                <RemoveButton
+                  onClick={() => removeFromCart(item._id, item.size, item.color)}
+                >
+                  <FiTrash2 />
+                </RemoveButton>
+              </CartItem>
+            ))}
+          </CartItems>
+
+          {/* Order Summary */}
+          <OrderSummary>
+            <SummaryTitle>Order Summary</SummaryTitle>
+
+            <SummaryRow>
+              <span>Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Shipping:</span>
+              <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Tax (10%):</span>
+              <span>${tax.toFixed(2)}</span>
+            </SummaryRow>
+
+            <Divider />
+
+            <SummaryTotal>
+              <span>Total:</span>
+              <span>${total.toFixed(2)}</span>
+            </SummaryTotal>
+
+            {subtotal < 500 && (
+              <ShippingNotice>
+                Add ${(500 - subtotal).toFixed(2)} more for free shipping!
+              </ShippingNotice>
+            )}
+
+            <CheckoutButton onClick={() => navigate('/checkout')}>
+              Proceed to Checkout
+            </CheckoutButton>
+
+            <ContinueShopping to="/shop">Continue Shopping</ContinueShopping>
+          </OrderSummary>
+        </CartLayout>
+      </Container>
+    </CartContainer>
+  );
+};
+
+const CartContainer = styled.div`
+  padding: 3rem 0;
+  min-height: 80vh;
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 3rem;
+  margin-bottom: 3rem;
+  letter-spacing: 2px;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const EmptyCart = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  color: var(--dark-gray);
+
+  h2 {
+    margin: 2rem 0 1rem;
+    font-size: 2rem;
+  }
+
+  p {
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+  }
+`;
+
+const ShopButton = styled(Link)`
+  display: inline-block;
+  padding: 1rem 2.5rem;
+  background: var(--charcoal);
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+
+  &:hover {
+    background: var(--gold);
+  }
+`;
+
+const CartLayout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 3rem;
+
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const CartItems = styled.div``;
+
+const CartItem = styled.div`
+  display: grid;
+  grid-template-columns: 120px 1fr auto auto auto;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.5rem;
+  border: 1px solid var(--light-gray);
+  margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 80px 1fr;
+    gap: 1rem;
+  }
+`;
+
+const ItemImage = styled(Link)`
+  width: 120px;
+  height: 120px;
+  background: var(--light-gray);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @media (max-width: 768px) {
+    width: 80px;
+    height: 80px;
+  }
+`;
+
+const ItemDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const ItemName = styled(Link)`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--charcoal);
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+const ItemOptions = styled.div`
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--dark-gray);
+`;
+
+const ItemPrice = styled.span`
+  font-size: 1rem;
+  color: var(--charcoal);
+`;
+
+const ItemQuantity = styled.div`
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--light-gray);
+
+  @media (max-width: 768px) {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+`;
+
+const QuantityButton = styled.button`
+  padding: 0.5rem 1rem;
+  background: var(--white);
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+
+  &:hover {
+    background: var(--cream);
+  }
+`;
+
+const QuantityDisplay = styled.span`
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+`;
+
+const ItemTotal = styled.span`
+  font-size: 1.2rem;
+  font-weight: 600;
+
+  @media (max-width: 768px) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+`;
+
+const RemoveButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--dark-gray);
+  cursor: pointer;
+  font-size: 1.3rem;
+
+  &:hover {
+    color: #dc3545;
+  }
+
+  @media (max-width: 768px) {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+`;
+
+const OrderSummary = styled.div`
+  background: var(--white);
+  padding: 2rem;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+
+  @media (max-width: 968px) {
+    position: static;
+  }
+`;
+
+const SummaryTitle = styled.h3`
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+`;
+
+const SummaryRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--dark-gray);
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid var(--light-gray);
+  margin: 1.5rem 0;
+`;
+
+const SummaryTotal = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+`;
+
+const ShippingNotice = styled.p`
+  background: #fff3cd;
+  color: #856404;
+  padding: 0.75rem;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+`;
+
+const CheckoutButton = styled.button`
+  width: 100%;
+  padding: 1.25rem;
+  background: var(--charcoal);
+  color: var(--white);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+
+  &:hover {
+    background: var(--gold);
+  }
+`;
+
+const ContinueShopping = styled(Link)`
+  display: block;
+  text-align: center;
+  padding: 1rem;
+  color: var(--charcoal);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.9rem;
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+export default CartPage;
+
+// ============================================================================
+// FILE: src/pages/CheckoutPage.jsx (CONTINUED IN NEXT RESPONSE)
+// ============================================================================
+
+
+// ============================================================================
+// FILE: src/pages/CheckoutPage.jsx
+// ============================================================================
+import React, { useState } from 'react';
+import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useCart } from '../context/CartContext';
+import api from '../utils/api';
+
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_your_key');
+
+const CheckoutForm = () => {
+  const navigate = useNavigate();
+  const stripe = useStripe();
+  const elements = useElements();
+  const { cart, getCartTotal, clearCart } = useCart();
+
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    street: '',
+    apartment: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'United States'
+  });
+
+  const subtotal = getCartTotal();
+  const shipping = subtotal >= 500 ? 0 : 50;
+  const tax = subtotal * 0.1;
+  const total = subtotal + shipping + tax;
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    if (cart.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Create order
+      const orderData = {
+        customer: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone
+        },
+        shippingAddress: {
+          street: formData.street,
+          apartment: formData.apartment,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country
+        },
+        items: cart.map(item => ({
+          product: item._id,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color
+        })),
+        payment: {
+          method: 'stripe'
+        }
+      };
+
+      const orderResponse = await api.post('/orders', orderData);
+      const order = orderResponse.data.data;
+
+      // Create payment intent
+      const paymentResponse = await api.post('/payment/create-intent', {
+        amount: total,
+        orderId: order._id
+      });
+
+      const { clientSecret } = paymentResponse.data;
+
+      // Confirm payment
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+          billing_details: {
+            name: formData.name,
+            email: formData.email
+          }
+        }
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else if (paymentIntent.status === 'succeeded') {
+        // Confirm payment on backend
+        await api.post('/payment/confirm', {
+          paymentIntentId: paymentIntent.id,
+          orderId: order._id
+        });
+
+        clearCart();
+        toast.success('Order placed successfully!');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error(error.response?.data?.message || 'Payment failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <CheckoutContainer>
+      <Container>
+        <PageTitle>Checkout</PageTitle>
+
+        <CheckoutLayout>
+          {/* Checkout Form */}
+          <FormSection>
+            <Form onSubmit={handleSubmit}>
+              <SectionTitle>Contact Information</SectionTitle>
+
+              <FormGroup>
+                <Label>Full Name*</Label>
+                <Input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </FormGroup>
+
+              <FormRow>
+                <FormGroup>
+                  <Label>Email*</Label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Phone*</Label>
+                  <Input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                  />
+                </FormGroup>
+              </FormRow>
+
+              <SectionTitle style={{ marginTop: '2rem' }}>Shipping Address</SectionTitle>
+
+              <FormGroup>
+                <Label>Street Address*</Label>
+                <Input
+                  type="text"
+                  name="street"
+                  value={formData.street}
+                  onChange={handleChange}
+                  required
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <Label>Apartment, Suite, etc.</Label>
+                <Input
+                  type="text"
+                  name="apartment"
+                  value={formData.apartment}
+                  onChange={handleChange}
+                />
+              </FormGroup>
+
+              <FormRow>
+                <FormGroup>
+                  <Label>City*</Label>
+                  <Input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    required
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>State*</Label>
+                  <Input
+                    type="text"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    required
+                  />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>ZIP Code*</Label>
+                  <Input
+                    type="text"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    required
+                  />
+                </FormGroup>
+              </FormRow>
+
+              <FormGroup>
+                <Label>Country*</Label>
+                <Select
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="United States">United States</option>
+                  <option value="Canada">Canada</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="Australia">Australia</option>
+                </Select>
+              </FormGroup>
+
+              <SectionTitle style={{ marginTop: '2rem' }}>Payment Information</SectionTitle>
+
+              <CardElementContainer>
+                <CardElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: '16px',
+                        color: '#2C2C2C',
+                        '::placeholder': {
+                          color: '#aab7c4',
+                        },
+                      },
+                      invalid: {
+                        color: '#fa755a',
+                        iconColor: '#fa755a',
+                      },
+                    },
+                  }}
+                />
+              </CardElementContainer>
+
+              <SubmitButton type="submit" disabled={!stripe || loading}>
+                {loading ? 'Processing...' : `Pay $${total.toFixed(2)}`}
+              </SubmitButton>
+
+              <SecurityNotice>
+                🔒 Your payment information is secure and encrypted
+              </SecurityNotice>
+            </Form>
+          </FormSection>
+
+          {/* Order Summary */}
+          <SummarySection>
+            <SummaryTitle>Order Summary</SummaryTitle>
+
+            <OrderItems>
+              {cart.map((item) => (
+                <OrderItem key={`${item._id}-${item.size}-${item.color}`}>
+                  <ItemImage src={item.images[0]?.url || '/placeholder.jpg'} alt={item.name} />
+                  <ItemInfo>
+                    <ItemName>{item.name}</ItemName>
+                    <ItemDetails>
+                      {item.size && <span>Size: {item.size}</span>}
+                      {item.color && <span>Color: {item.color}</span>}
+                      <span>Qty: {item.quantity}</span>
+                    </ItemDetails>
+                  </ItemInfo>
+                  <ItemPrice>${(item.price * item.quantity).toFixed(2)}</ItemPrice>
+                </OrderItem>
+              ))}
+            </OrderItems>
+
+            <Divider />
+
+            <SummaryRow>
+              <span>Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Shipping:</span>
+              <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Tax:</span>
+              <span>${tax.toFixed(2)}</span>
+            </SummaryRow>
+
+            <Divider />
+
+            <TotalRow>
+              <span>Total:</span>
+              <span>${total.toFixed(2)}</span>
+            </TotalRow>
+          </SummarySection>
+        </CheckoutLayout>
+      </Container>
+    </CheckoutContainer>
+  );
+};
+
+const CheckoutPage = () => {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutForm />
+    </Elements>
+  );
+};
+
+const CheckoutContainer = styled.div`
+  padding: 3rem 0;
+  min-height: 80vh;
+  background: var(--cream);
+`;
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 3rem;
+  margin-bottom: 3rem;
+  letter-spacing: 2px;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const CheckoutLayout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 450px;
+  gap: 3rem;
+
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormSection = styled.div``;
+
+const Form = styled.form`
+  background: var(--white);
+  padding: 2rem;
+  border-radius: 8px;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--charcoal);
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+  background: var(--white);
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const CardElementContainer = styled.div`
+  padding: 1rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  margin-bottom: 1.5rem;
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 1.25rem;
+  background: var(--charcoal);
+  color: var(--white);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-radius: 5px;
+
+  &:hover:not(:disabled) {
+    background: var(--gold);
+  }
+
+  &:disabled {
+    background: var(--light-gray);
+    cursor: not-allowed;
+  }
+`;
+
+const SecurityNotice = styled.p`
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--dark-gray);
+  margin-top: 1rem;
+`;
+
+const SummarySection = styled.div`
+  background: var(--white);
+  padding: 2rem;
+  border-radius: 8px;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+
+  @media (max-width: 968px) {
+    position: static;
+  }
+`;
+
+const SummaryTitle = styled.h3`
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+`;
+
+const OrderItems = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const OrderItem = styled.div`
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--light-gray);
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ItemImage = styled.img`
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  background: var(--light-gray);
+`;
+
+const ItemInfo = styled.div``;
+
+const ItemName = styled.p`
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+`;
+
+const ItemDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  color: var(--dark-gray);
+`;
+
+const ItemPrice = styled.span`
+  font-weight: 600;
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid var(--light-gray);
+  margin: 1.5rem 0;
+`;
+
+const SummaryRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+`;
+
+const TotalRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.5rem;
+  font-weight: 600;
+`;
+
+export default CheckoutPage;
+
+// ============================================================================
+// FILE: src/pages/admin/AdminLogin.jsx
+// ============================================================================
+import React, { useState } from 'react';
+import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useAuth } from '../../context/AuthContext';
+
+const AdminLogin = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await login(formData.email, formData.password);
+      toast.success('Login successful!');
+      navigate('/admin');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <LoginContainer>
+      <LoginBox>
+        <Logo>LYKA FASHION</Logo>
+        <Title>Admin Login</Title>
+
+        <Form onSubmit={handleSubmit}>
+          <FormGroup>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="admin@lykafashion.com"
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Password</Label>
+            <Input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              placeholder="••••••••"
+            />
+          </FormGroup>
+
+          <SubmitButton type="submit" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </SubmitButton>
+        </Form>
+
+        <BackLink href="/">← Back to Store</BackLink>
+      </LoginBox>
+    </LoginContainer>
+  );
+};
+
+const LoginContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream);
+`;
+
+const LoginBox = styled.div`
+  background: var(--white);
+  padding: 3rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 450px;
+`;
+
+const Logo = styled.h1`
+  text-align: center;
+  font-size: 2rem;
+  letter-spacing: 3px;
+  margin-bottom: 1rem;
+  color: var(--charcoal);
+`;
+
+const Title = styled.h2`
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: var(--dark-gray);
+  font-weight: 400;
+`;
+
+const Form = styled.form``;
+
+const FormGroup = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--charcoal);
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 1rem;
+  background: var(--charcoal);
+  color: var(--white);
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--gold);
+  }
+
+  &:disabled {
+    background: var(--light-gray);
+    cursor: not-allowed;
+  }
+`;
+
+const BackLink = styled.a`
+  display: block;
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--dark-gray);
+
+  &:hover {
+    color: var(--gold);
+  }
+`;
+
+export default AdminLogin;
+
+// ============================================================================
+// FILE: src/pages/admin/AdminDashboard.jsx
+// ============================================================================
+import React from 'react';
+import styled from 'styled-components';
+import { Link, useNavigate } from 'react-router-dom';
+import { FiHome, FiShoppingBag, FiPackage, FiPlusCircle, FiLogOut } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
+
+const AdminDashboard = ({ children }) => {
+  const navigate = useNavigate();
+  const { admin, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/admin/login');
+  };
+
+  return (
+    <DashboardContainer>
+      <Sidebar>
+        <SidebarHeader>
+          <Logo>LYKA FASHION</Logo>
+          <AdminInfo>
+            <AdminName>{admin?.name}</AdminName>
+            <AdminRole>{admin?.role}</AdminRole>
+          </AdminInfo>
+        </SidebarHeader>
+
+        <Nav>
+          <NavItem to="/admin">
+            <FiHome /> Dashboard
+          </NavItem>
+          <NavItem to="/admin/products">
+            <FiShoppingBag /> Products
+          </NavItem>
+          <NavItem to="/admin/add-product">
+            <FiPlusCircle /> Add Product
+          </NavItem>
+          <NavItem to="/admin/orders">
+            <FiPackage /> Orders
+          </NavItem>
+        </Nav>
+
+        <SidebarFooter>
+          <LogoutButton onClick={handleLogout}>
+            <FiLogOut /> Logout
+          </LogoutButton>
+        </SidebarFooter>
+      </Sidebar>
+
+      <MainContent>{children}</MainContent>
+    </DashboardContainer>
+  );
+};
+
+const DashboardContainer = styled.div`
+  display: flex;
+  min-height: 100vh;
+  background: var(--cream);
+`;
+
+const Sidebar = styled.aside`
+  width: 280px;
+  background: var(--charcoal);
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: 968px) {
+    display: none;
+  }
+`;
+
+const SidebarHeader = styled.div`
+  padding: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const Logo = styled.h2`
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  margin-bottom: 1.5rem;
+`;
+
+const AdminInfo = styled.div``;
+
+const AdminName = styled.p`
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+`;
+
+const AdminRole = styled.p`
+  font-size: 0.85rem;
+  color: var(--gold);
+  text-transform: uppercase;
+`;
+
+const Nav = styled.nav`
+  flex: 1;
+  padding: 2rem 0;
+`;
+
+const NavItem = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  color: var(--white);
+  transition: all 0.3s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    font-size: 1.2rem;
+  }
+`;
+
+const SidebarFooter = styled.div`
+  padding: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const LogoutButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--gold);
+  }
+`;
+
+const MainContent = styled.main`
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+`;
+
+export default AdminDashboard;
+
+// ============================================================================
+// FILE: src/pages/admin/Dashboard.jsx
+// ============================================================================
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { FiDollarSign, FiShoppingBag, FiPackage, FiTrendingUp } from 'react-icons/fi';
+import api from '../../utils/api';
+
+const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    totalProducts: 0,
+    recentOrders: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const [ordersRes, productsRes] = await Promise.all([
+        api.get('/orders/statistics'),
+        api.get('/products?limit=1000')
+      ]);
+
+      setStats({
+        totalOrders: ordersRes.data.data.totalOrders,
+        totalRevenue: ordersRes.data.data.totalRevenue,
+        totalProducts: productsRes.data.total,
+        recentOrders: ordersRes.data.data.recentOrders || []
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <LoadingText>Loading dashboard...</LoadingText>;
+  }
+
+  return (
+    <DashboardContent>
+      <PageTitle>Dashboard</PageTitle>
+
+      <StatsGrid>
+        <StatCard>
+          <StatIcon color="#4CAF50">
+            <FiDollarSign />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>${stats.totalRevenue.toFixed(2)}</StatValue>
+            <StatLabel>Total Revenue</StatLabel>
+          </StatInfo>
+        </StatCard>
+
+        <StatCard>
+          <StatIcon color="#2196F3">
+            <FiPackage />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{stats.totalOrders}</StatValue>
+            <StatLabel>Total Orders</StatLabel>
+          </StatInfo>
+        </StatCard>
+
+        <StatCard>
+          <StatIcon color="#FF9800">
+            <FiShoppingBag />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{stats.totalProducts}</StatValue>
+            <StatLabel>Total Products</StatLabel>
+          </StatInfo>
+        </StatCard>
+
+        <StatCard>
+          <StatIcon color="#9C27B0">
+            <FiTrendingUp />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>
+              ${stats.totalOrders > 0 ? (stats.totalRevenue / stats.totalOrders).toFixed(2) : '0.00'}
+            </StatValue>
+            <StatLabel>Avg Order Value</StatLabel>
+          </StatInfo>
+        </StatCard>
+      </StatsGrid>
+
+      <Section>
+        <SectionTitle>Recent Orders</SectionTitle>
+        {stats.recentOrders.length > 0 ? (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Order #</Th>
+                <Th>Customer</Th>
+                <Th>Total</Th>
+                <Th>Status</Th>
+                <Th>Date</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.recentOrders.map(order => (
+                <tr key={order._id}>
+                  <Td>{order.orderNumber}</Td>
+                  <Td>{order.customer?.name}</Td>
+                  <Td>${order.pricing?.total.toFixed(2)}</Td>
+                  <Td>
+                    <StatusBadge status={order.orderStatus}>
+                      {order.orderStatus}
+                    </StatusBadge>
+                  </Td>
+                  <Td>{new Date(order.createdAt).toLocaleDateString()}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        ) : (
+          <NoData>No orders yet</NoData>
+        )}
+      </Section>
+    </DashboardContent>
+  );
+};
+
+const DashboardContent = styled.div``;
+
+const PageTitle = styled.h1`
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  letter-spacing: 1px;
+`;
+
+const LoadingText = styled.p`
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+`;
+
+const StatCard = styled.div`
+  background: var(--white);
+  padding: 1.5rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+`;
+
+const StatIcon = styled.div`
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: ${props => props.color}20;
+  color: ${props => props.color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+`;
+
+const StatInfo = styled.div``;
+
+const StatValue = styled.div`
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--charcoal);
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.9rem;
+  color: var(--dark-gray);
+  margin-top: 0.3rem;
+`;
+
+const Section = styled.div`
+  background: var(--white);
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 1rem;
+  border-bottom: 2px solid var(--light-gray);
+  font-weight: 600;
+`;
+
+const Td = styled.td`
+  padding: 1rem;
+  border-bottom: 1px solid var(--light-gray);
+`;
+
+const StatusBadge = styled.span`
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: ${props => {
+    switch(props.status) {
+      case 'delivered': return '#28a745';
+      case 'shipped': return '#007bff';
+      case 'processing': return '#ffc107';
+      case 'pending': return '#6c757d';
+      case 'cancelled': return '#dc3545';
+      default: return '#6c757d';
+    }
+  }};
+  color: white;
+`;
+
+const NoData = styled.p`
+  text-align: center;
+  padding: 2rem;
+  color: var(--dark-gray);
+`;
+
+export default Dashboard;
+
+// ============================================================================
+// FILE: src/pages/admin/AdminProducts.jsx
+// ============================================================================
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { Link } from 'react-router-dom';
+import { FiEdit, FiTrash2, FiPlus } from 'react-icons/fi';
+import { toast } from 'react-toastify';
+import api from '../../utils/api';
+
+const AdminProducts = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    fetchProducts();
+  }, [filter]);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const params = filter !== 'all' ? { category: filter } : {};
+      const response = await api.get('/products', { params: { ...params, limit: 100 } });
+      setProducts(response.data.data);
+    } catch (error) {
+      toast.error('Error fetching products');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      try {
+        await api.delete(`/products/${id}`);
+        toast.success('Product deleted successfully');
+        fetchProducts();
+      } catch (error) {
+        toast.error('Error deleting product');
+      }
+    }
+  };
+
+  return (
+    <ProductsContent>
+      <Header>
+        <PageTitle>Products</PageTitle>
+        <AddButton to="/admin/add-product">
+          <FiPlus /> Add Product
+        </AddButton>
+      </Header>
+
+      <FilterBar>
+        <FilterButton active={filter === 'all'} onClick={() => setFilter('all')}>
+          All Products
+        </FilterButton>
+        <FilterButton active={filter === 'Luxury Bridals'} onClick={() => setFilter('Luxury Bridals')}>
+          Luxury Bridals
+        </FilterButton>
+        <FilterButton active={filter === 'Elegant Abayas'} onClick={() => setFilter('Elegant Abayas')}>
+          Elegant Abayas
+        </FilterButton>
+        <FilterButton active={filter === 'Designer Suits'} onClick={() => setFilter('Designer Suits')}>
+          Designer Suits
+        </FilterButton>
+        <FilterButton active={filter === 'Couture Cosmetics'} onClick={() => setFilter('Couture Cosmetics')}>
+          Couture Cosmetics
+        </FilterButton>
+      </FilterBar>
+
+      {loading ? (
+        <LoadingText>Loading products...</LoadingText>
+      ) : products.length > 0 ? (
+        <ProductsGrid>
+          {products.map(product => (
+            <ProductCard key={product._id}>
+              <ProductImage src={product.images[0]?.url || '/placeholder.jpg'} alt={product.name} />
+              <ProductInfo>
+                <ProductName>{product.name}</ProductName>
+                <ProductCategory>{product.category}</ProductCategory>
+                <ProductPrice>${product.price.toFixed(2)}</ProductPrice>
+                <ProductStock>Stock: {product.inventory?.available || 0}</ProductStock>
+              </ProductInfo>
+              <ProductActions>
+                <EditButton to={`/admin/edit-product/${product._id}`}>
+                  <FiEdit /> Edit
+                </EditButton>
+                <DeleteButton onClick={() => handleDelete(product._id, product.name)}>
+                  <FiTrash2 /> Delete
+                </DeleteButton>
+              </ProductActions>
+            </ProductCard>
+          ))}
+        </ProductsGrid>
+      ) : (
+        <NoProducts>
+          <p>No products found</p>
+          <AddButton to="/admin/add-product">Add Your First Product</AddButton>
+        </NoProducts>
+      )}
+    </ProductsContent>
+  );
+};
+
+const ProductsContent = styled.div``;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+`;
+
+const PageTitle = styled.h1`
+  font-size: 2.5rem;
+  letter-spacing: 1px;
+`;
+
+const AddButton = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--charcoal);
+  color: var(--white);
+  border-radius: 5px;
+
+  &:hover {
+    background: var(--gold);
+  }
+`;
+
+const FilterBar = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+`;
+
+const FilterButton = styled.button`
+  padding: 0.5rem 1rem;
+  background: ${props => props.active ? 'var(--charcoal)' : 'var(--white)'};
+  color: ${props => props.active ? 'var(--white)' : 'var(--charcoal)'};
+  border: 1px solid var(--charcoal);
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background: ${props => props.active ? 'var(--gold)' : 'var(--cream)'};
+    border-color: ${props => props.active ? 'var(--gold)' : 'var(--charcoal)'};
+  }
+`;
+
+const LoadingText = styled.p`
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+`;
+
+const ProductsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+`;
+
+const ProductCard = styled.div`
+  background: var(--white);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+`;
+
+const ProductImage = styled.img`
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  background: var(--light-gray);
+`;
+
+const ProductInfo = styled.div`
+  padding: 1.5rem;
+`;
+
+const ProductName = styled.h3`
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+`;
+
+const ProductCategory = styled.p`
+  font-size: 0.85rem;
+  color: var(--dark-gray);
+  margin-bottom: 0.5rem;
+`;
+
+const ProductPrice = styled.p`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+`;
+
+const ProductStock = styled.p`
+  font-size: 0.9rem;
+  color: var(--dark-gray);
+`;
+
+const ProductActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--light-gray);
+`;
+
+const EditButton = styled(Link)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--white);
+  color: var(--charcoal);
+  border-right: 1px solid var(--light-gray);
+
+  &:hover {
+    background: var(--cream);
+  }
+`;
+
+const DeleteButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--white);
+  color: #dc3545;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background: #dc354520;
+  }
+`;
+
+const NoProducts = styled.div`
+  text-align: center;
+  padding: 5rem 2rem;
+
+  p {
+    font-size: 1.2rem;
+    color: var(--dark-gray);
+    margin-bottom: 2rem;
+  }
+`;
+
+export default AdminProducts;
+
+// ============================================================================
+// FILE: src/pages/admin/AddProduct.jsx
+// ============================================================================
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import api from '../../utils/api';
+
+const AddProduct = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [loading, setLoading] = useState(false);
+  const [images, setImages] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    compareAtPrice: '',
+    category: 'Luxury Bridals',
+    inventory: { totalStock: 0 },
+    seo: { metaTitle: '', metaDescription: '', keywords: [] },
+    featured: false,
+    newArrival: false,
+    status: 'active'
+  });
+
+  useEffect(() => {
+    if (id) {
+      fetchProduct();
+    }
+  }, [id]);
+
+  const fetchProduct = async () => {
+    try {
+      const response = await api.get(`/products/id/${id}`);
+      setFormData(response.data.data);
+    } catch (error) {
+      toast.error('Error fetching product');
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setFormData(prev => ({
+        ...prev,
+        [parent]: { ...prev[parent], [child]: value }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
+  };
+
+  const handleImageChange = (e) => {
+    setImages([...e.target.files]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      let productRes;
+
+      if (id) {
+        productRes = await api.put(`/products/${id}`, formData);
+      } else {
+        productRes = await api.post('/products', formData);
+      }
+
+      // Upload images if any
+      if (images.length > 0) {
+        const imageFormData = new FormData();
+        images.forEach(image => {
+          imageFormData.append('images', image);
+        });
+
+        await api.post(`/products/${productRes.data.data._id}/images`, imageFormData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+
+      toast.success(`Product ${id ? 'updated' : 'created'} successfully!`);
+      navigate('/admin/products');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error saving product');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <FormContainer>
+      <PageTitle>{id ? 'Edit Product' : 'Add New Product'}</PageTitle>
+
+      <Form onSubmit={handleSubmit}>
+        <Section>
+          <SectionTitle>Basic Information</SectionTitle>
+
+          <FormGroup>
+            <Label>Product Name*</Label>
+            <Input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              placeholder="e.g., Elegant Bridal Gown"
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Description*</Label>
+            <Textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows="5"
+              required
+              placeholder="Describe your product..."
+            />
+          </FormGroup>
+
+          <FormRow>
+            <FormGroup>
+              <Label>Price*</Label>
+              <Input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                required
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Compare At Price</Label>
+              <Input
+                type="number"
+                name="compareAtPrice"
+                value={formData.compareAtPrice}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+              />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Stock*</Label>
+              <Input
+                type="number"
+                name="inventory.totalStock"
+                value={formData.inventory.totalStock}
+                onChange={handleChange}
+                min="0"
+                required
+              />
+            </FormGroup>
+          </FormRow>
+
+          <FormGroup>
+            <Label>Category*</Label>
+            <Select name="category" value={formData.category} onChange={handleChange}>
+              <option value="Luxury Bridals">Luxury Bridals</option>
+              <option value="Elegant Abayas">Elegant Abayas</option>
+              <option value="Designer Suits">Designer Suits</option>
+              <option value="Couture Cosmetics">Couture Cosmetics</option>
+            </Select>
+          </FormGroup>
+        </Section>
+
+        <Section>
+          <SectionTitle>Images</SectionTitle>
+          <FormGroup>
+            <Label>Product Images</Label>
+            <FileInput
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            {images.length > 0 && (
+              <FileInfo>{images.length} file(s) selected</FileInfo>
+            )}
+          </FormGroup>
+        </Section>
+
+        <Section>
+          <SectionTitle>SEO</SectionTitle>
+
+          <FormGroup>
+            <Label>Meta Title</Label>
+            <Input
+              type="text"
+              name="seo.metaTitle"
+              value={formData.seo.metaTitle}
+              onChange={handleChange}
+              maxLength="60"
+              placeholder="SEO title (max 60 characters)"
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Meta Description</Label>
+            <Textarea
+              name="seo.metaDescription"
+              value={formData.seo.metaDescription}
+              onChange={handleChange}
+              rows="3"
+              maxLength="160"
+              placeholder="SEO description (max 160 characters)"
+            />
+          </FormGroup>
+        </Section>
+
+        <Section>
+          <SectionTitle>Options</SectionTitle>
+
+          <CheckboxGroup>
+            <Checkbox>
+              <input
+                type="checkbox"
+                name="featured"
+                checked={formData.featured}
+                onChange={handleChange}
+              />
+              <span>Featured Product</span>
+            </Checkbox>
+
+            <Checkbox>
+              <input
+                type="checkbox"
+                name="newArrival"
+                checked={formData.newArrival}
+                onChange={handleChange}
+              />
+              <span>New Arrival</span>
+            </Checkbox>
+          </CheckboxGroup>
+
+          <FormGroup>
+            <Label>Status</Label>
+            <Select name="status" value={formData.status} onChange={handleChange}>
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </Select>
+          </FormGroup>
+        </Section>
+
+        <ButtonGroup>
+          <SubmitButton type="submit" disabled={loading}>
+            {loading ? 'Saving...' : id ? 'Update Product' : 'Create Product'}
+          </SubmitButton>
+          <CancelButton type="button" onClick={() => navigate('/admin/products')}>
+            Cancel
+          </CancelButton>
+        </ButtonGroup>
+      </Form>
+    </FormContainer>
+  );
+};
+
+const FormContainer = styled.div``;
+
+const PageTitle = styled.h1`
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  letter-spacing: 1px;
+`;
+
+const Form = styled.form`
+  background: var(--white);
+  padding: 2rem;
+  border-radius: 10px;
+`;
+
+const Section = styled.div`
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--light-gray);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--charcoal);
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const Textarea = styled.textarea`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+  resize: vertical;
+  font-family: var(--sans);
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const Select = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+  background: var(--white);
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const FileInput = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px dashed var(--light-gray);
+  border-radius: 5px;
+  cursor: pointer;
+`;
+
+const FileInfo = styled.p`
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--dark-gray);
+`;
+
+const CheckboxGroup = styled.div`
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+`;
+
+const Checkbox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+
+  input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  span {
+    font-size: 1rem;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+const SubmitButton = styled.button`
+  padding: 1rem 2rem;
+  background: var(--charcoal);
+  color: var(--white);
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--gold);
+  }
+
+  &:disabled {
+    background: var(--light-gray);
+    cursor: not-allowed;
+  }
+`;
+
+const CancelButton = styled.button`
+  padding: 1rem 2rem;
+  background: var(--white);
+  color: var(--charcoal);
+  border: 1px solid var(--charcoal);
+  border-radius: 5px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cream);
+  }
+`;
+
+export default AddProduct;
+
+// ============================================================================
+// FILE: src/pages/admin/AdminOrders.jsx
+// ============================================================================
+import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { toast } from 'react-toastify';
+import api from '../../utils/api';
+
+const AdminOrders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/orders');
+      setOrders(response.data.data);
+    } catch (error) {
+      toast.error('Error fetching orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, status) => {
+    try {
+      await api.put(`/orders/${orderId}/status`, { orderStatus: status });
+      toast.success('Order status updated');
+      fetchOrders();
+    } catch (error) {
+      toast.error('Error updating order');
+    }
+  };
+
+  if (loading) {
+    return <LoadingText>Loading orders...</LoadingText>;
+  }
+
+  return (
+    <OrdersContent>
+      <PageTitle>Orders</PageTitle>
+
+      {orders.length > 0 ? (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Order #</Th>
+              <Th>Customer</Th>
+              <Th>Email</Th>
+              <Th>Total</Th>
+              <Th>Payment</Th>
+              <Th>Status</Th>
+              <Th>Date</Th>
+              <Th>Actions</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(order => (
+              <tr key={order._id}>
+                <Td>{order.orderNumber}</Td>
+                <Td>{order.customer?.name}</Td>
+                <Td>{order.customer?.email}</Td>
+                <Td>${order.pricing?.total.toFixed(2)}</Td>
+                <Td>
+                  <StatusBadge status={order.payment?.status}>
+                    {order.payment?.status}
+                  </StatusBadge>
+                </Td>
+                <Td>
+                  <StatusSelect
+                    value={order.orderStatus}
+                    onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="processing">Processing</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                  </StatusSelect>
+                </Td>
+                <Td>{new Date(order.createdAt).toLocaleDateString()}</Td>
+                <Td>
+                  <ViewButton>View Details</ViewButton>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      ) : (
+        <NoOrders>
+          <p>No orders yet</p>
+        </NoOrders>
+      )}
+    </OrdersContent>
+  );
+};
+
+const OrdersContent = styled.div``;
+
+const PageTitle = styled.h1`
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  letter-spacing: 1px;
+`;
+
+const LoadingText = styled.p`
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: var(--dark-gray);
+`;
+
+const Table = styled.table`
+  width: 100%;
+  background: var(--white);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 1rem;
+  background: var(--charcoal);
+  color: var(--white);
+  font-weight: 600;
+`;
+
+const Td = styled.td`
+  padding: 1rem;
+  border-bottom: 1px solid var(--light-gray);
+`;
+
+const StatusBadge = styled.span`
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: ${props => {
+    switch(props.status) {
+      case 'paid': return '#28a745';
+      case 'pending': return '#ffc107';
+      case 'failed': return '#dc3545';
+      default: return '#6c757d';
+    }
+  }};
+  color: white;
+`;
+
+const StatusSelect = styled.select`
+  padding: 0.5rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 5px;
+  background: var(--white);
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+`;
+
+const ViewButton = styled.button`
+  padding: 0.5rem 1rem;
+  background: var(--charcoal);
+  color: var(--white);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--gold);
+  }
+`;
+
+const NoOrders = styled.div`
+  background: var(--white);
+  padding: 5rem 2rem;
+  text-align: center;
+  border-radius: 10px;
+
+  p {
+    font-size: 1.2rem;
+    color: var(--dark-gray);
+  }
+`;
+
+export default AdminOrders;
+
+/*
+================================================================================
+FRONTEND SETUP COMPLETE!
+
+TO RUN FRONTEND:
+1. Copy all files to their respective locations
+2. Create .env file in frontend root:
+   REACT_APP_API_URL=http://localhost:5000/api
+   REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
+
+3. Run: npm install
+4. Run: npm start
+
+Your frontend will be running on http://localhost:3000
+
+COMPLETE FEATURES:
+✅ Responsive Design (Mobile, Tablet, Desktop)
+✅ Shopping Cart with Context API
+✅ Product Catalog with Filtering & Sorting
+✅ Product Detail Pages
+✅ Checkout with Stripe Integration
+✅ Admin Dashboard with Authentication
+✅ Product Management (CRUD)
+✅ Order Management
+✅ Image Upload
+✅ SEO Optimization
+✅ Toast Notifications
+✅ Protected Routes
+
+CREDENTIALS:
+Default Admin: owner@lykafashion.com
+Password: password123 (set during seed.js)
+
+================================================================================
+*/
