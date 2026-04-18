@@ -1,0 +1,1217 @@
+/*
+================================================================================
+LYKA FASHION - COMPLETE BACKEND CODE
+================================================================================
+This is the complete backend code consolidated into sections.
+Copy each section to its respective file as indicated.
+
+INSTALLATION INSTRUCTIONS:
+1. Create a folder: mkdir lyka-fashion-backend && cd lyka-fashion-backend
+2. Initialize: npm init -y
+3. Install dependencies: npm install express mongoose bcryptjs jsonwebtoken dotenv cors helmet express-rate-limit stripe nodemailer cloudinary multer express-fileupload slugify validator
+4. Install dev dependencies: npm install -D nodemon
+5. Create the files as shown below
+6. Run: npm run dev
+
+================================================================================
+*/
+
+// ============================================================================
+// FILE: package.json
+// ============================================================================
+{
+  "name": "lyka-fashion-backend",
+  "version": "1.0.0",
+  "description": "Luxury Fashion E-commerce Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.0.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "dotenv": "^16.0.3",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.7.0",
+    "stripe": "^12.0.0",
+    "nodemailer": "^6.9.1",
+    "cloudinary": "^1.36.2",
+    "multer": "^1.4.5-lts.1",
+    "express-fileupload": "^1.4.0",
+    "slugify": "^1.6.6",
+    "validator": "^13.9.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
+
+// ============================================================================
+// FILE: .env
+// ============================================================================
+/*
+NODE_ENV=production
+PORT=5000
+
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/lyka-fashion?retryWrites=true&w=majority
+
+# JWT
+JWT_SECRET=lyka_fashion_super_secret_jwt_key_2024_change_this
+JWT_EXPIRE=30d
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_your_stripe_key_here
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key_here
+
+# Email
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+EMAIL_FROM=Lyka Fashion <noreply@lykafashion.com>
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=123456789012345
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Frontend
+FRONTEND_URL=http://localhost:3000
+*/
+
+// ============================================================================
+// FILE: server.js
+// ============================================================================
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const fileUpload = require('express-fileupload');
+require('dotenv').config();
+
+const app = express();
+
+// Middleware
+app.use(helmet());
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests, please try again later.'
+});
+app.use('/api/', limiter);
+
+// Database Connection
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => { console.error('❌ MongoDB Error:', err); process.exit(1); });
+
+// Import Routes
+const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
+const orderRoutes = require('./routes/orders');
+const paymentRoutes = require('./routes/payment');
+
+// Use Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payment', paymentRoutes);
+
+// Health Check
+app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
+
+// 404 Handler
+app.use('*', (req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
+
+// Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || 'Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+process.on('unhandledRejection', (err) => {
+  console.log('❌ UNHANDLED REJECTION! Shutting down...');
+  console.log(err.name, err.message);
+  process.exit(1);
+});
+
+// ============================================================================
+// FILE: models/Product.js
+// ============================================================================
+const mongoose = require('mongoose');
+const slugify = require('slugify');
+
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: [true, 'Product name is required'], trim: true, maxlength: 200 },
+  slug: { type: String, unique: true, lowercase: true },
+  description: { type: String, required: [true, 'Description is required'], maxlength: 2000 },
+  price: { type: Number, required: [true, 'Price is required'], min: 0 },
+  compareAtPrice: { type: Number, min: 0 },
+  category: {
+    type: String,
+    enum: ['Luxury Bridals', 'Elegant Abayas', 'Designer Suits', 'Couture Cosmetics'],
+    required: true
+  },
+  images: [{
+    url: { type: String, required: true },
+    publicId: String,
+    alt: String,
+    isPrimary: { type: Boolean, default: false }
+  }],
+  sizes: [{ size: String, stock: { type: Number, default: 0 } }],
+  colors: [{ name: String, hexCode: String, stock: { type: Number, default: 0 } }],
+  inventory: {
+    totalStock: { type: Number, required: true, default: 0 },
+    reserved: { type: Number, default: 0 },
+    available: { type: Number, default: 0 }
+  },
+  seo: {
+    metaTitle: { type: String, maxlength: 60 },
+    metaDescription: { type: String, maxlength: 160 },
+    keywords: [String]
+  },
+  featured: { type: Boolean, default: false },
+  newArrival: { type: Boolean, default: false },
+  status: { type: String, enum: ['active', 'draft', 'archived', 'out-of-stock'], default: 'active' },
+  ratings: { average: { type: Number, default: 0, min: 0, max: 5 }, count: { type: Number, default: 0 } },
+  sales: { type: Number, default: 0 },
+  views: { type: Number, default: 0 }
+}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
+
+productSchema.index({ slug: 1, category: 1, status: 1 });
+
+productSchema.pre('save', function(next) {
+  if (this.isModified('name')) {
+    this.slug = slugify(this.name, { lower: true, strict: true });
+  }
+  this.inventory.available = this.inventory.totalStock - this.inventory.reserved;
+  if (this.inventory.available <= 0) this.status = 'out-of-stock';
+  if (!this.seo.metaTitle) this.seo.metaTitle = this.name.substring(0, 60);
+  if (!this.seo.metaDescription) this.seo.metaDescription = this.description.substring(0, 160);
+  next();
+});
+
+productSchema.virtual('discountPercentage').get(function() {
+  if (this.compareAtPrice && this.compareAtPrice > this.price) {
+    return Math.round(((this.compareAtPrice - this.price) / this.compareAtPrice) * 100);
+  }
+  return 0;
+});
+
+productSchema.methods.checkStock = function(quantity) {
+  return this.inventory.available >= quantity;
+};
+
+productSchema.methods.reserveStock = async function(quantity) {
+  if (!this.checkStock(quantity)) throw new Error('Insufficient stock');
+  this.inventory.reserved += quantity;
+  await this.save();
+  return this;
+};
+
+productSchema.methods.releaseStock = async function(quantity) {
+  this.inventory.reserved -= quantity;
+  if (this.inventory.reserved < 0) this.inventory.reserved = 0;
+  await this.save();
+  return this;
+};
+
+productSchema.methods.completeSale = async function(quantity) {
+  this.inventory.totalStock -= quantity;
+  this.inventory.reserved -= quantity;
+  this.sales += quantity;
+  await this.save();
+  return this;
+};
+
+module.exports = mongoose.model('Product', productSchema);
+
+// ============================================================================
+// FILE: models/Order.js
+// ============================================================================
+const orderSchema = new mongoose.Schema({
+  orderNumber: { type: String, unique: true, required: true },
+  customer: {
+    name: { type: String, required: true },
+    email: { type: String, required: true, lowercase: true },
+    phone: { type: String, required: true }
+  },
+  shippingAddress: {
+    street: { type: String, required: true },
+    apartment: String,
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    zipCode: { type: String, required: true },
+    country: { type: String, required: true, default: 'United States' }
+  },
+  billingAddress: {
+    street: String,
+    apartment: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String,
+    sameAsShipping: { type: Boolean, default: true }
+  },
+  items: [{
+    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    name: String,
+    image: String,
+    price: { type: Number, required: true },
+    quantity: { type: Number, required: true, min: 1 },
+    size: String,
+    color: String,
+    subtotal: Number
+  }],
+  pricing: {
+    subtotal: { type: Number, required: true, default: 0 },
+    shipping: { type: Number, default: 0 },
+    tax: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 },
+    total: { type: Number, required: true }
+  },
+  payment: {
+    method: { type: String, enum: ['stripe', 'paypal', 'cash-on-delivery'], default: 'stripe' },
+    status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+    transactionId: String,
+    paidAt: Date,
+    refundedAt: Date,
+    refundAmount: Number
+  },
+  orderStatus: {
+    type: String,
+    enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
+    default: 'pending'
+  },
+  shipping: {
+    carrier: String,
+    trackingNumber: String,
+    shippedAt: Date,
+    estimatedDelivery: Date,
+    deliveredAt: Date
+  },
+  notes: { customer: String, admin: String },
+  timeline: [{ status: String, note: String, timestamp: { type: Date, default: Date.now } }]
+}, { timestamps: true });
+
+orderSchema.index({ orderNumber: 1, 'customer.email': 1, orderStatus: 1 });
+
+orderSchema.pre('save', function(next) {
+  if (this.isNew) {
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    this.orderNumber = `LF${timestamp}${random}`;
+  }
+  this.items.forEach(item => { item.subtotal = item.price * item.quantity; });
+  if (this.isModified('orderStatus')) {
+    this.timeline.push({ status: this.orderStatus, timestamp: new Date() });
+  }
+  next();
+});
+
+orderSchema.methods.calculateTotals = function() {
+  this.pricing.subtotal = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  this.pricing.shipping = this.pricing.subtotal >= 500 ? 0 : 50;
+  this.pricing.tax = this.pricing.subtotal * 0.1;
+  this.pricing.total = this.pricing.subtotal + this.pricing.shipping + this.pricing.tax - this.pricing.discount;
+  return this;
+};
+
+orderSchema.statics.getStatistics = async function() {
+  const stats = await this.aggregate([
+    { $group: {
+      _id: null,
+      totalOrders: { $sum: 1 },
+      totalRevenue: { $sum: '$pricing.total' },
+      averageOrderValue: { $avg: '$pricing.total' }
+    }}
+  ]);
+  return stats[0] || { totalOrders: 0, totalRevenue: 0, averageOrderValue: 0 };
+};
+
+module.exports = mongoose.model('Order', orderSchema);
+
+// ============================================================================
+// FILE: models/Admin.js
+// ============================================================================
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const adminSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Invalid email']
+  },
+  password: { type: String, required: true, minlength: 6, select: false },
+  role: { type: String, enum: ['owner', 'admin', 'editor', 'viewer'], default: 'admin' },
+  permissions: [{ type: String, enum: ['products', 'orders', 'customers', 'settings', 'users'] }],
+  isActive: { type: Boolean, default: true },
+  lastLogin: Date,
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: Date,
+  avatar: String,
+  resetPasswordToken: String,
+  resetPasswordExpire: Date
+}, { timestamps: true });
+
+adminSchema.index({ email: 1 });
+
+adminSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(12);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+adminSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+adminSchema.methods.getSignedJwtToken = function() {
+  return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
+};
+
+adminSchema.methods.incLoginAttempts = async function() {
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return await this.updateOne({ $set: { loginAttempts: 1 }, $unset: { lockUntil: 1 } });
+  }
+  const updates = { $inc: { loginAttempts: 1 } };
+  const maxAttempts = 5;
+  if (this.loginAttempts + 1 >= maxAttempts && !this.lockUntil) {
+    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
+  }
+  return await this.updateOne(updates);
+};
+
+adminSchema.virtual('isLocked').get(function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+});
+
+adminSchema.methods.resetLoginAttempts = async function() {
+  return await this.updateOne({ $set: { loginAttempts: 0 }, $unset: { lockUntil: 1 } });
+};
+
+module.exports = mongoose.model('Admin', adminSchema);
+
+// ============================================================================
+// FILE: middleware/auth.js
+// ============================================================================
+const jwt = require('jsonwebtoken');
+const Admin = require('../models/Admin');
+
+exports.protect = async (req, res, next) => {
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Not authorized. Please login.' });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.admin = await Admin.findById(decoded.id).select('-password');
+    if (!req.admin) {
+      return res.status(401).json({ success: false, message: 'Admin not found' });
+    }
+    if (!req.admin.isActive) {
+      return res.status(401).json({ success: false, message: 'Account deactivated' });
+    }
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Invalid token' });
+  }
+};
+
+exports.authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.admin.role)) {
+      return res.status(403).json({ success: false, message: `Role ${req.admin.role} not authorized` });
+    }
+    next();
+  };
+};
+
+exports.hasPermission = (...permissions) => {
+  return (req, res, next) => {
+    const hasPermission = permissions.some(permission => 
+      req.admin.permissions.includes(permission) || req.admin.role === 'owner'
+    );
+    if (!hasPermission) {
+      return res.status(403).json({ success: false, message: 'No permission for this action' });
+    }
+    next();
+  };
+};
+
+// ============================================================================
+// FILE: controllers/authController.js
+// ============================================================================
+const Admin = require('../models/Admin');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE,
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+});
+
+exports.register = async (req, res) => {
+  try {
+    const { name, email, password, role, permissions } = req.body;
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
+      return res.status(400).json({ success: false, message: 'Admin already exists' });
+    }
+    const admin = await Admin.create({ name, email, password, role: role || 'admin', permissions: permissions || [] });
+    await sendWelcomeEmail(admin.email, admin.name);
+    res.status(201).json({
+      success: true,
+      message: 'Admin registered successfully',
+      data: { id: admin._id, name: admin.name, email: admin.email, role: admin.role }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Provide email and password' });
+    }
+    const admin = await Admin.findOne({ email }).select('+password');
+    if (!admin) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+    if (admin.isLocked) {
+      return res.status(401).json({ success: false, message: 'Account locked. Try again later.' });
+    }
+    const isMatch = await admin.comparePassword(password);
+    if (!isMatch) {
+      await admin.incLoginAttempts();
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+    if (admin.loginAttempts > 0) await admin.resetLoginAttempts();
+    admin.lastLogin = Date.now();
+    await admin.save();
+    const token = admin.getSignedJwtToken();
+    res.json({
+      success: true,
+      token,
+      admin: { id: admin._id, name: admin.name, email: admin.email, role: admin.role, permissions: admin.permissions }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getMe = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    res.json({ success: true, data: admin });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.logout = async (req, res) => {
+  res.json({ success: true, message: 'Logged out successfully' });
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const admin = await Admin.findOne({ email: req.body.email });
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'No admin with that email' });
+    }
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    admin.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    admin.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    await admin.save();
+    const resetUrl = `${process.env.FRONTEND_URL}/admin/reset-password/${resetToken}`;
+    await sendPasswordResetEmail(admin.email, resetUrl);
+    res.json({ success: true, message: 'Password reset email sent' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
+    const admin = await Admin.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } });
+    if (!admin) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+    admin.password = req.body.password;
+    admin.resetPasswordToken = undefined;
+    admin.resetPasswordExpire = undefined;
+    await admin.save();
+    const token = admin.getSignedJwtToken();
+    res.json({ success: true, token, message: 'Password reset successful' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updatePassword = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id).select('+password');
+    if (!(await admin.comparePassword(req.body.currentPassword))) {
+      return res.status(401).json({ success: false, message: 'Current password incorrect' });
+    }
+    admin.password = req.body.newPassword;
+    await admin.save();
+    const token = admin.getSignedJwtToken();
+    res.json({ success: true, token, message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+async function sendWelcomeEmail(email, name) {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: 'Welcome to Lyka Fashion Admin Panel',
+    html: `
+      <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #2C2C2C; border-bottom: 2px solid #D4AF37; padding-bottom: 10px;">Welcome to Lyka Fashion</h1>
+        <p style="font-size: 16px;">Dear ${name},</p>
+        <p>Your admin account has been created successfully.</p>
+        <a href="${process.env.FRONTEND_URL}/admin/login" 
+           style="display: inline-block; background: #2C2C2C; color: white; padding: 12px 30px; text-decoration: none; margin: 20px 0;">
+          Login to Dashboard
+        </a>
+      </div>
+    `
+  };
+  await transporter.sendMail(mailOptions);
+}
+
+async function sendPasswordResetEmail(email, resetUrl) {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: 'Password Reset - Lyka Fashion Admin',
+    html: `
+      <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #2C2C2C;">Password Reset Request</h1>
+        <p>You requested a password reset.</p>
+        <a href="${resetUrl}" 
+           style="display: inline-block; background: #2C2C2C; color: white; padding: 12px 30px; text-decoration: none; margin: 20px 0;">
+          Reset Password
+        </a>
+        <p style="color: #666; font-size: 14px;">This link expires in 10 minutes.</p>
+      </div>
+    `
+  };
+  await transporter.sendMail(mailOptions);
+}
+
+// ============================================================================
+// FILE: controllers/productController.js
+// ============================================================================
+const Product = require('../models/Product');
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+exports.getProducts = async (req, res) => {
+  try {
+    const { category, featured, newArrival, sort, page = 1, limit = 12, search, minPrice, maxPrice, status = 'active' } = req.query;
+    let query = { status };
+    if (category && category !== 'all') query.category = category;
+    if (featured === 'true') query.featured = true;
+    if (newArrival === 'true') query.newArrival = true;
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { 'seo.keywords': { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+    let sortOption = {};
+    switch(sort) {
+      case 'price-low': sortOption.price = 1; break;
+      case 'price-high': sortOption.price = -1; break;
+      case 'newest': sortOption.createdAt = -1; break;
+      case 'popular': sortOption.sales = -1; break;
+      default: sortOption.createdAt = -1;
+    }
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    const products = await Product.find(query).sort(sortOption).limit(limitNum).skip(skip);
+    const total = await Product.countDocuments(query);
+    res.json({
+      success: true,
+      count: products.length,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+      currentPage: pageNum,
+      data: products
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getProduct = async (req, res) => {
+  try {
+    const product = await Product.findOne({ slug: req.params.slug });
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    product.views += 1;
+    await product.save();
+    res.json({ success: true, data: product });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getProductById = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    res.json({ success: true, data: product });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.createProduct = async (req, res) => {
+  try {
+    const product = await Product.create(req.body);
+    res.status(201).json({ success: true, message: 'Product created', data: product });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateProduct = async (req, res) => {
+  try {
+    let product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    res.json({ success: true, message: 'Product updated', data: product });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    if (product.images && product.images.length > 0) {
+      for (let image of product.images) {
+        if (image.publicId) await cloudinary.uploader.destroy(image.publicId);
+      }
+    }
+    await product.deleteOne();
+    res.json({ success: true, message: 'Product deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.uploadImages = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded' });
+    }
+    const images = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+    const uploadedImages = [];
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      const result = await cloudinary.uploader.upload(image.tempFilePath, {
+        folder: 'lyka-fashion/products',
+        use_filename: true,
+        unique_filename: true
+      });
+      uploadedImages.push({
+        url: result.secure_url,
+        publicId: result.public_id,
+        alt: `${product.name} - Image ${i + 1}`,
+        isPrimary: product.images.length === 0 && i === 0
+      });
+    }
+    product.images.push(...uploadedImages);
+    await product.save();
+    res.json({ success: true, message: 'Images uploaded', data: product });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteImage = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    const image = product.images.id(req.params.imageId);
+    if (!image) {
+      return res.status(404).json({ success: false, message: 'Image not found' });
+    }
+    if (image.publicId) await cloudinary.uploader.destroy(image.publicId);
+    image.deleteOne();
+    await product.save();
+    res.json({ success: true, message: 'Image deleted', data: product });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getCategoryStats = async (req, res) => {
+  try {
+    const stats = await Product.aggregate([
+      { $match: { status: 'active' } },
+      { $group: {
+        _id: '$category',
+        count: { $sum: 1 },
+        avgPrice: { $avg: '$price' },
+        minPrice: { $min: '$price' },
+        maxPrice: { $max: '$price' }
+      }},
+      { $sort: { count: -1 } }
+    ]);
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================================================
+// FILE: controllers/orderController.js
+// ============================================================================
+const Order = require('../models/Order');
+
+exports.createOrder = async (req, res) => {
+  try {
+    const { items, customer, shippingAddress, billingAddress, payment } = req.body;
+    
+    // Validate and reserve stock
+    for (let item of items) {
+      const product = await Product.findById(item.product);
+      if (!product) {
+        return res.status(404).json({ success: false, message: `Product ${item.product} not found` });
+      }
+      if (!product.checkStock(item.quantity)) {
+        return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}` });
+      }
+      await product.reserveStock(item.quantity);
+      item.name = product.name;
+      item.price = product.price;
+      item.image = product.images[0]?.url;
+    }
+
+    const order = new Order({
+      customer,
+      shippingAddress,
+      billingAddress,
+      items,
+      payment: { method: payment.method || 'stripe' }
+    });
+
+    order.calculateTotals();
+    await order.save();
+
+    await sendOrderConfirmation(order);
+
+    res.status(201).json({ success: true, message: 'Order created', data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getOrders = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20, search } = req.query;
+    let query = {};
+    if (status) query.orderStatus = status;
+    if (search) {
+      query.$or = [
+        { orderNumber: { $regex: search, $options: 'i' } },
+        { 'customer.email': { $regex: search, $options: 'i' } },
+        { 'customer.name': { $regex: search, $options: 'i' } }
+      ];
+    }
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+    const orders = await Order.find(query)
+      .populate('items.product')
+      .sort('-createdAt')
+      .limit(limitNum)
+      .skip(skip);
+    const total = await Order.countDocuments(query);
+    res.json({
+      success: true,
+      count: orders.length,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+      data: orders
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('items.product');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    res.json({ success: true, data: order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { orderStatus, trackingNumber, carrier, notes } = req.body;
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // If order is being shipped
+    if (orderStatus === 'shipped' && order.orderStatus !== 'shipped') {
+      order.shipping.shippedAt = new Date();
+      order.shipping.trackingNumber = trackingNumber;
+      order.shipping.carrier = carrier;
+      
+      // Complete sale and reduce inventory
+      for (let item of order.items) {
+        const product = await Product.findById(item.product);
+        if (product) await product.completeSale(item.quantity);
+      }
+      
+      await sendShippingNotification(order);
+    }
+
+    // If order is delivered
+    if (orderStatus === 'delivered') {
+      order.shipping.deliveredAt = new Date();
+      order.payment.status = 'paid';
+      order.payment.paidAt = new Date();
+    }
+
+    // If order is cancelled
+    if (orderStatus === 'cancelled') {
+      // Release reserved stock
+      for (let item of order.items) {
+        const product = await Product.findById(item.product);
+        if (product) await product.releaseStock(item.quantity);
+      }
+    }
+
+    order.orderStatus = orderStatus;
+    if (notes) order.notes.admin = notes;
+    await order.save();
+
+    res.json({ success: true, message: 'Order updated', data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getOrderStatistics = async (req, res) => {
+  try {
+    const stats = await Order.getStatistics();
+    const statusBreakdown = await Order.aggregate([
+      { $group: { _id: '$orderStatus', count: { $sum: 1 } } }
+    ]);
+    const recentOrders = await Order.find().sort('-createdAt').limit(10);
+    
+    res.json({
+      success: true,
+      data: { ...stats, statusBreakdown, recentOrders }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+async function sendOrderConfirmation(order) {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: order.customer.email,
+    subject: `Order Confirmation - ${order.orderNumber}`,
+    html: `
+      <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #2C2C2C;">Thank You for Your Order!</h1>
+        <p>Order Number: <strong>${order.orderNumber}</strong></p>
+        <p>Total: <strong>$${order.pricing.total.toFixed(2)}</strong></p>
+        <h3>Order Items:</h3>
+        ${order.items.map(item => `
+          <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+            <p><strong>${item.name}</strong> x ${item.quantity}</p>
+            <p>$${item.price.toFixed(2)}</p>
+          </div>
+        `).join('')}
+        <p style="margin-top: 20px;">We'll send you a shipping confirmation once your items are on their way.</p>
+      </div>
+    `
+  };
+  await transporter.sendMail(mailOptions);
+}
+
+async function sendShippingNotification(order) {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: order.customer.email,
+    subject: `Your Order Has Shipped - ${order.orderNumber}`,
+    html: `
+      <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #2C2C2C;">Your Order is On Its Way!</h1>
+        <p>Order Number: <strong>${order.orderNumber}</strong></p>
+        <p>Tracking Number: <strong>${order.shipping.trackingNumber}</strong></p>
+        <p>Carrier: <strong>${order.shipping.carrier}</strong></p>
+      </div>
+    `
+  };
+  await transporter.sendMail(mailOptions);
+}
+
+// ============================================================================
+// FILE: controllers/paymentController.js
+// ============================================================================
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+exports.createPaymentIntent = async (req, res) => {
+  try {
+    const { amount, orderId, currency = 'usd' } = req.body;
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency,
+      metadata: { orderId }
+    });
+    res.json({ success: true, clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.confirmPayment = async (req, res) => {
+  try {
+    const { paymentIntentId, orderId } = req.body;
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (paymentIntent.status === 'succeeded') {
+      await Order.findByIdAndUpdate(orderId, {
+        'payment.status': 'paid',
+        'payment.transactionId': paymentIntentId,
+        'payment.paidAt': new Date(),
+        orderStatus: 'confirmed'
+      });
+      res.json({ success: true, message: 'Payment confirmed' });
+    } else {
+      res.status(400).json({ success: false, message: 'Payment not completed' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.refundPayment = async (req, res) => {
+  try {
+    const { orderId, amount } = req.body;
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    const refund = await stripe.refunds.create({
+      payment_intent: order.payment.transactionId,
+      amount: amount ? Math.round(amount * 100) : undefined
+    });
+    order.payment.status = amount ? 'partially-refunded' : 'refunded';
+    order.payment.refundedAt = new Date();
+    order.payment.refundAmount = (order.payment.refundAmount || 0) + (amount || order.pricing.total);
+    await order.save();
+    res.json({ success: true, message: 'Refund processed', data: refund });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================================================
+// FILE: routes/auth.js
+// ============================================================================
+const express = require('express');
+const router = express.Router();
+const { protect, authorize } = require('../middleware/auth');
+const { register, login, getMe, logout, forgotPassword, resetPassword, updatePassword } = require('../controllers/authController');
+
+router.post('/register', protect, authorize('owner'), register);
+router.post('/login', login);
+router.get('/me', protect, getMe);
+router.post('/logout', protect, logout);
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:resetToken', resetPassword);
+router.put('/update-password', protect, updatePassword);
+
+module.exports = router;
+
+// ============================================================================
+// FILE: routes/products.js
+// ============================================================================
+const router2 = express.Router();
+const { protect, authorize } = require('../middleware/auth');
+const {
+  getProducts,
+  getProduct,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  uploadImages,
+  deleteImage,
+  getCategoryStats
+} = require('../controllers/productController');
+
+router2.get('/', getProducts);
+router2.get('/categories/stats', getCategoryStats);
+router2.get('/:slug', getProduct);
+router2.get('/id/:id', protect, getProductById);
+router2.post('/', protect, authorize('owner', 'admin'), createProduct);
+router2.put('/:id', protect, authorize('owner', 'admin'), updateProduct);
+router2.delete('/:id', protect, authorize('owner', 'admin'), deleteProduct);
+router2.post('/:id/images', protect, authorize('owner', 'admin'), uploadImages);
+router2.delete('/:id/images/:imageId', protect, authorize('owner', 'admin'), deleteImage);
+
+module.exports = router2;
+
+// ============================================================================
+// FILE: routes/orders.js
+// ============================================================================
+const router3 = express.Router();
+const { protect } = require('../middleware/auth');
+const {
+  createOrder,
+  getOrders,
+  getOrder,
+  updateOrderStatus,
+  getOrderStatistics
+} = require('../controllers/orderController');
+
+router3.post('/', createOrder);
+router3.get('/', protect, getOrders);
+router3.get('/statistics', protect, getOrderStatistics);
+router3.get('/:id', protect, getOrder);
+router3.put('/:id/status', protect, updateOrderStatus);
+
+module.exports = router3;
+
+// ============================================================================
+// FILE: routes/payment.js
+// ============================================================================
+const router4 = express.Router();
+const { protect } = require('../middleware/auth');
+const { createPaymentIntent, confirmPayment, refundPayment } = require('../controllers/paymentController');
+
+router4.post('/create-intent', createPaymentIntent);
+router4.post('/confirm', confirmPayment);
+router4.post('/refund', protect, refundPayment);
+
+module.exports = router4;
+
+// ============================================================================
+// FILE: seed.js (Optional - Create first admin)
+// ============================================================================
+/*
+const mongoose = require('mongoose');
+const Admin = require('./models/Admin');
+require('dotenv').config();
+
+mongoose.connect(process.env.MONGODB_URI)
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    
+    const admin = await Admin.create({
+      name: 'Owner',
+      email: 'owner@lykafashion.com',
+      password: 'password123',
+      role: 'owner',
+      permissions: ['products', 'orders', 'customers', 'settings', 'users']
+    });
+    
+    console.log('✅ Admin created:', admin.email);
+    console.log('Password: password123');
+    process.exit(0);
+  })
+  .catch(err => {
+    console.error('Error:', err);
+    process.exit(1);
+  });
+*/
+
+/*
+================================================================================
+BACKEND SETUP COMPLETE!
+
+TO RUN:
+1. Create all files as shown above
+2. Create .env file with your actual credentials
+3. Run: npm install
+4. Run seed.js to create first admin: node seed.js
+5. Start server: npm run dev
+
+Your backend will be running on http://localhost:5000
+
+API ENDPOINTS:
+- Auth: POST /api/auth/login, /register, /forgot-password
+- Products: GET/POST /api/products, PUT/DELETE /api/products/:id
+- Orders: GET/POST /api/orders, PUT /api/orders/:id/status
+- Payment: POST /api/payment/create-intent, /confirm
+
+Next: See the FRONTEND CODE in the next message!
+================================================================================
+*/
